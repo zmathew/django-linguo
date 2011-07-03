@@ -222,8 +222,12 @@ When saving the form, it will automatically save the form data to the fields in 
 
 Installation
 ------------
-* You just need to ensure ``linguo`` is in your ``PYTHONPATH`` so that you can import ``MultilingualModel`` and ``MultilingualManager``.
-* Ensure the ``LANGUAGES`` setting contains all the languages for your site.
+
+1. You just need to ensure ``linguo`` is in your ``PYTHONPATH`` so that you can import ``MultilingualModel`` and ``MultilingualManager``. You can use ``distutils`` to have it installed into your Python packages folder 
+(``python setup.py install``).
+
+2`. Ensure the ``LANGUAGES`` setting contains all the languages for your site.
+
 
 **It is highly recommended that you use south** (`<http://south.aeracode.org/>`__) so that changes to your model can be migrated using automatic schema migrations. This is because linguo creates new fields on your model that are transparent to you. See the section below on "Behind The Scenes" for more details.
 
@@ -271,8 +275,7 @@ For example, if you mark the following field as translatable ...
     
     name = models.CharField(_('name'), max_length=255) # This is for the FIRST language "en"
     name_fr = models.CharField(_('name (French)'), max_length=255) # This is for "fr"
-    name_de = models.CharField(_('name (Germa
-    n)'), max_length=255) # This is for "de"
+    name_de = models.CharField(_('name (German)'), max_length=255) # This is for "de"
 
 On the instantiated model, "name" becomes a ``property`` that appropriately gets/sets the values
 for the corresponding field that matches the language we are working with.
