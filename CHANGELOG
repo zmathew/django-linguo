@@ -1,0 +1,253 @@
+1.2.0
+=====
+
+Tagged on July 3, 2011
+
+
+Upgrade Instructions
+--------------------
+* Change any references of `linguo.manager` to `linguo.managers`
+
+
+Major Code Changes
+------------------
+* None
+
+
+Bugs Fixes and Small Enhancements
+---------------------------------
+* Renamed manager.py to managers.py
+
+
+Known issues
+------------
+* None
+
+
+
+* * *
+
+
+
+1.1.5
+=====
+
+Tagged on June 22, 2011
+
+
+Major Code Changes
+------------------
+* None
+
+
+Bugs Fixes and Small Enhancements
+---------------------------------
+* Made compatible with Django 1.3
+* 001011-510: test_all script does not run linguo tests
+
+
+Known issues
+------------
+* None
+
+
+
+* * *
+
+
+
+1.1.4
+=====
+
+Tagged on June 10, 2011
+
+
+Major Code Changes
+------------------
+* None
+
+
+Bugs Fixes and Small Enhancements
+---------------------------------
+* Previous release did not actually fix the circular import issue. Now it is fixed. 
+
+
+Known issues
+------------
+* 001011-510: test_all script does not run linguo tests
+
+
+
+* * *
+
+
+
+1.1.3
+=====
+
+Tagged on June 10, 2011
+
+
+Major Code Changes
+------------------
+* None
+
+
+Bugs Fixes and Small Enhancements
+---------------------------------
+* Fixed issue with ugettext circular import with haystack during rewriting trans fields
+
+
+Known issues
+------------
+* 001011-510: test_all script does not run linguo tests
+
+
+
+* * *
+
+
+
+1.1.2
+=====
+
+Tagged on May 24, 2011
+
+
+Major Code Changes
+------------------
+* None
+
+
+Bugs Fixes and Small Enhancements
+---------------------------------
+* Added support for having a field called language on a multilingual model
+
+
+Known issues
+------------
+* 001011-510: test_all script does not run linguo tests
+
+
+
+* * *
+
+
+
+1.1.1
+=====
+
+Tagged on April 19
+
+
+
+* * *
+
+
+
+1.1.1ALPHA
+==========
+
+Tagged on April 11
+
+
+Major Code Changes
+------------------
+* None
+
+
+Bugs Fixes and Small Enhancements
+---------------------------------
+* Added support for translatable file fields
+
+
+Known issues
+------------
+* 001011-510: test_all script does not run linguo tests
+
+
+
+* * *
+
+
+
+1.1.0
+=====
+
+Tagged on April 10
+
+
+Major Code Changes
+------------------
+* 001011-576: linguo: Using a translatable field in the model form does not work
+* 001011-554: linguo: search_fields and list_filter translatable fields cause FieldError in the Admin
+
+
+Bugs Fixes and Small Enhancements
+---------------------------------
+* 001011-577: ordering of admin fields is not always the same
+* 001011-505: Incomplete documentation
+
+
+Known issues
+------------
+* 001011-510: test_all script does not run linguo tests
+
+
+
+* * *
+
+
+
+1.0.0ALPHA
+==========
+
+Tagged on December 20, 2010
+
+* Same as 0.1.1
+
+* * *
+
+
+0.1.1
+=====
+
+Tagged on October 4
+
+
+Major Code Changes
+------------------
+* None
+
+
+Bugs Fixes and Small Enhancements
+---------------------------------
+* 001011-509: Multiple fields are not supported
+* 001011-508: Empty field is not supported
+
+
+Known issues
+------------
+* 001011-510: test_all script does not run linguo tests
+
+
+
+* * *
+
+
+
+0.1.0
+=====
+
+Tagged on October 3
+
+Major Code Changes
+------------------
+* Initial import.
+
+Known issues
+------------
+* 001011-505: Incomplete documentation
+
+
+* * *
