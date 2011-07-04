@@ -8,7 +8,7 @@ from django.utils.translation import ugettext_lazy as _
 from django.utils.translation import get_language
 
 from linguo.exceptions import InvalidActionError, MultilingualFieldError
-from linguo.manager import MultilingualManager
+from linguo.managers import MultilingualManager
 from linguo.utils import get_real_field_name
 
 
