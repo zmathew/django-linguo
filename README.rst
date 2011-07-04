@@ -21,10 +21,13 @@ Features
 Usage
 -----
 
-In your model, specify the fields to be translated in the ``Meta`` class ``translate`` property:
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Subclass ``MultilingualModel`` and specify the fields to be translated in the ``Meta`` class ``translate`` property:
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ::
 
+    from linguo.models import MultilingualModel
+    from linguo.managers import MultilingualManager
+    
     class Product(MultilingualModel):
         name = models.CharField(max_length=255, verbose_name=_('name'))
         description = models.TextField(verbose_name=_('description'))
