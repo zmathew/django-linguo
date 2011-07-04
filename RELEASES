@@ -1,3 +1,24 @@
+1.2.2
+=====
+
+Tagged on July 4, 2011
+
+
+Major Code Changes
+------------------
+* None
+
+
+Bugs Fixes and Small Enhancements
+---------------------------------
+* Tests were not included in the previous release. Modified the setup.py to include it.
+
+
+
+* * *
+
+
+
 1.2.1
 =====
 
