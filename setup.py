@@ -6,7 +6,8 @@ import linguo
 
 setup(
     name='django-linguo',
-    packages=['linguo',],
+    packages=['linguo', 'linguo.tests',],
+    package_data={'linguo': ['tests/locale/*/LC_MESSAGES/*']},
     version=linguo.__version__,
     description=linguo.__doc__,
     long_description=open('README.rst').read(),
