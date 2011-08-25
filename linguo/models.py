@@ -29,7 +29,13 @@ class MultilingualModelBase(ModelBase):
         
         # Add a property that masks the translatable fields
         for field_name in local_trans_fields:
-            # Some fields add a descriptor (ie. FileField), we want to keep that
+            # If there is already a property with the same name, we will leave it
+            # This also happens if the Class is created multiple times
+            # (ModelBase has the ability to detect this and "bail out")
+            if type(new_obj.__dict__.get(field_name)) == property:
+                continue
+            
+            # Some fields add a descriptor (ie. FileField), we want to keep that on the model
             if field_name in new_obj.__dict__:
                 primary_lang_field_name = '%s_%s' % (field_name, settings.LANGUAGES[0][0])
                 setattr(new_obj, primary_lang_field_name, new_obj.__dict__[field_name])
