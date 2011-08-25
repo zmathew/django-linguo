@@ -1,3 +1,24 @@
+1.2.3
+=====
+
+Tagged on August 24, 2011
+
+
+Major Code Changes
+------------------
+* None
+
+
+Bugs Fixes and Small Enhancements
+---------------------------------
+* Fixed recursion issue that occured when a multilingual model class is created multiple times in the same python process.
+
+
+
+* * *
+
+
+
 1.2.2
 =====
 

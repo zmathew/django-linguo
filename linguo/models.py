@@ -31,7 +31,7 @@ class MultilingualModelBase(ModelBase):
         for field_name in local_trans_fields:
             # If there is already a property with the same name, we will leave it
             # This also happens if the Class is created multiple times
-            # (ModelBase has the ability to detect this and "bail out")
+            # (Django's ModelBase has the ability to detect this and "bail out" but we don't)
             if type(new_obj.__dict__.get(field_name)) == property:
                 continue
             
