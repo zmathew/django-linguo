@@ -14,7 +14,8 @@ Features
 * Automatically retrieves translated values in the current active language.
 * Supports filtering and ordering on translatable fields.
 * Can support ModelForms for translatable models that automatically save values to the active language.
-* Compatible with Django 1.0.3 to latest (1.3)
+* Supports latest version of Django (1.3)
+* Comprehensive tests
 
 
 Usage
