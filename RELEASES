@@ -1,3 +1,24 @@
+1.2.4
+=====
+
+Tagged on October 31, 2011
+
+
+Major Code Changes
+------------------
+* None
+
+
+Bugs Fixes and Small Enhancements
+---------------------------------
+* Implemented ability to do an explicit lookup on a translatable field thus forcing it to look into a specific language (Special thanks to François Beaufort [https://github.com/beaufortfrancois] for this patch
+
+
+
+* * *
+
+
+
 1.2.3
 =====
 
