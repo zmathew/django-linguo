@@ -10,9 +10,18 @@ def rewrite_lookup_key(model, lookup_key):
     from linguo.models import MultilingualModel # to avoid circular import
     if issubclass(model, MultilingualModel):
         pieces = lookup_key.split('__')
+        # If we are doing a lookup on a translatable field, we want to rewrite it to the actual field name
+        # For example, we want to rewrite "name__startswith" to "name_fr__startswith"
         if pieces[0] in model._meta.translatable_fields:
             lookup_key = get_real_field_name(pieces[0], get_language().split('-')[0])
 
+            remaining_lookup = '__'.join(pieces[1:])
+            if remaining_lookup:
+                lookup_key = '%s__%s' % (lookup_key, remaining_lookup)
+        elif pieces[0] in map(lambda field: '%s_%s' % (field, settings.LANGUAGES[0][0]), model._meta.translatable_fields):
+            # If the lookup field explicitly refers to the primary langauge (eg. "name_en"),
+            # we want to rewrite that to point to the actual field name.
+            lookup_key = pieces[0][:-3] # Strip out the language suffix
             remaining_lookup = '__'.join(pieces[1:])
             if remaining_lookup:
                 lookup_key = '%s__%s' % (lookup_key, remaining_lookup)

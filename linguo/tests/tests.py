@@ -231,6 +231,63 @@ class Tests(LinguoTests):
         qs = Foo.objects.exclude(name__startswith="French")
         self.assertEquals(qs.count(), 0)
 
+    def testFilteringUsingExplicitFieldName(self):
+        obj_en = Foo.objects.create(name='English Foo', price=10, language='en')
+        obj_fr = obj_en.create_translation(name='French Foo', language='fr')
+
+        obj2_en = Foo.objects.create(name='Another English Foo', price=20, language='en')
+        obj2_fr = obj2_en.create_translation(name='Another French Foo', language='fr')
+
+        # we're in english
+        translation.activate('en')
+        qs = Foo.objects.filter(name_en="English Foo")
+        self.assertEquals(qs.count(), 1)
+        self.assertEquals(qs[0], obj_en)
+
+        qs = Foo.objects.filter(name_en__startswith="English")
+        self.assertEquals(qs.count(), 1)
+        self.assertEquals(qs[0], obj_en)
+        qs = Foo.objects.exclude(name_en__startswith="English")
+        self.assertEquals(qs.count(), 1)
+        self.assertEquals(qs[0], obj2_en)
+
+        # try using the french field name
+        qs = Foo.objects.filter(name_fr="French Foo")
+        self.assertEquals(qs.count(), 1)
+        self.assertEquals(qs[0], obj_en)
+
+        qs = Foo.objects.filter(name_fr__startswith="French")
+        self.assertEquals(qs.count(), 1)
+        self.assertEquals(qs[0], obj_en)
+        qs = Foo.objects.exclude(name_fr__startswith="French")
+        self.assertEquals(qs.count(), 1)
+        self.assertEquals(qs[0], obj2_en)
+
+        # now try in french
+        translation.activate('fr')
+        qs = Foo.objects.filter(name_en="English Foo")
+        self.assertEquals(qs.count(), 1)
+        self.assertEquals(qs[0], obj_en)
+
+        qs = Foo.objects.filter(name_en__startswith="English")
+        self.assertEquals(qs.count(), 1)
+        self.assertEquals(qs[0], obj_en)
+        qs = Foo.objects.exclude(name_en__startswith="English")
+        self.assertEquals(qs.count(), 1)
+        self.assertEquals(qs[0], obj2_en)
+
+        # try using the french field name
+        qs = Foo.objects.filter(name_fr="French Foo")
+        self.assertEquals(qs.count(), 1)
+        self.assertEquals(qs[0], obj_en)
+
+        qs = Foo.objects.filter(name_fr__startswith="French")
+        self.assertEquals(qs.count(), 1)
+        self.assertEquals(qs[0], obj_en)
+        qs = Foo.objects.exclude(name_fr__startswith="French")
+        self.assertEquals(qs.count(), 1)
+        self.assertEquals(qs[0], obj2_en)
+
     def testOrderingOnTransField(self):
         obj_en = Foo.objects.create(name='English Foo', price=10, language='en')
         obj_fr = obj_en.create_translation(name='French Foo', language='fr')
@@ -302,7 +359,55 @@ class Tests(LinguoTests):
         qs = FooRel.objects.filter(myfoo__name__startswith='French')
         self.assertEquals(qs.count(), 1)
         self.assertEquals(qs[0], m1)
-    
+
+    def testFilteringOnRelatedObjectsUsingExplicitFieldName(self):
+        obj_en = Foo.objects.create(name='English Foo', price=10, language='en')
+        obj_fr = obj_en.create_translation(name='French Foo', language='fr')
+
+        obj2_en = Foo.objects.create(name='Another English Foo', price=20, language='en')
+        obj2_fr = obj2_en.create_translation(name='Another French Foo', language='fr')
+
+        m1 = FooRel.objects.create(myfoo=obj_en, desc="description 1")
+        m2 = FooRel.objects.create(myfoo=obj2_en, desc="description 2")
+
+        # we're in english
+        translation.activate('en')
+        qs = FooRel.objects.filter(myfoo__name_en='English Foo')
+        self.assertEquals(qs.count(), 1)
+        self.assertEquals(qs[0], m1)
+
+        qs = FooRel.objects.filter(myfoo__name_en__startswith='Another')
+        self.assertEquals(qs.count(), 1)
+        self.assertEquals(qs[0], m2)
+
+        # try using the french field name
+        qs = FooRel.objects.filter(myfoo__name_fr='French Foo')
+        self.assertEquals(qs.count(), 1)
+        self.assertEquals(qs[0], m1)
+
+        qs = FooRel.objects.filter(myfoo__name_fr__startswith='Another')
+        self.assertEquals(qs.count(), 1)
+        self.assertEquals(qs[0], m2)
+
+        # now try in french
+        translation.activate('fr')
+        qs = FooRel.objects.filter(myfoo__name_en='English Foo')
+        self.assertEquals(qs.count(), 1)
+        self.assertEquals(qs[0], m1)
+
+        qs = FooRel.objects.filter(myfoo__name_en__startswith='Another')
+        self.assertEquals(qs.count(), 1)
+        self.assertEquals(qs[0], m2)
+
+        # try using the french field name
+        qs = FooRel.objects.filter(myfoo__name_fr='French Foo')
+        self.assertEquals(qs.count(), 1)
+        self.assertEquals(qs[0], m1)
+
+        qs = FooRel.objects.filter(myfoo__name_fr__startswith='Another')
+        self.assertEquals(qs.count(), 1)
+        self.assertEquals(qs[0], m2)
+
     def testModelWithTranslatableFileField(self):
         doc_en = Doc.objects.create(pdf='something.pdf')
         doc_fr = doc_en.create_translation(pdf='something-fr.pdf', language='fr')
