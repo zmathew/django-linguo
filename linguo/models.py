@@ -91,7 +91,8 @@ class MultilingualModelBase(ModelBase):
                     raw_verbose_name = lang_field.verbose_name._proxy____args[0]
                 else:
                     raw_verbose_name = field.replace('-', ' ')
-                lang_field.verbose_name = _(u'%s (%s)'% (raw_verbose_name, lang[1]))
+                lang_field.verbose_name = _(u'%(verbose_name)s (%(language)s)'%
+                    {'verbose_name': raw_verbose_name, 'language': lang[1] })
                 
                 attrs[lang_fieldname] = lang_field
 
