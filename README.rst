@@ -258,7 +258,7 @@ Running the tests
 ~~~~~~~~~~~~~~~~~
 ::
 
-    ./manage test tests --settings=linguo.tests.settings
+    ./manage.py test tests --settings=linguo.tests.settings
 
 
 Behind The Scenes (How It Works)
