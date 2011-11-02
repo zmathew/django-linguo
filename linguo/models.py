@@ -218,3 +218,6 @@ class MultilingualModel(models.Model):
         
         trans_obj.save()
         return trans_obj
+    
+    def translate(self, language):
+        self._language = language
