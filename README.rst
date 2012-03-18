@@ -14,8 +14,8 @@ Features
 * Automatically retrieves translated values in the current active language.
 * Supports filtering and ordering on translatable fields.
 * Can support ModelForms for translatable models that automatically save values to the active language.
-* Supports latest version of Django (1.3)
-* Comprehensive tests
+* Supports Django versions 1.2 to 1.4
+* Comprehensive test coverage
 
 
 Usage
@@ -27,14 +27,14 @@ Subclass ``MultilingualModel`` and specify the fields to be translated in the ``
 
     from linguo.models import MultilingualModel
     from linguo.managers import MultilingualManager
-    
+
     class Product(MultilingualModel):
         name = models.CharField(max_length=255, verbose_name=_('name'))
         description = models.TextField(verbose_name=_('description'))
         price = models.FloatField(verbose_name=_('price'))
-        
+
         objects = MultilingualManager()
-        
+
         class Meta:
             # name and description are translatable fields
             translate = ('name', 'description')
@@ -59,12 +59,12 @@ Behind the scenes, linguo will add columns for each additional language:
     class Product(MultilingualModel):
         name = models.CharField(max_length=255, verbose_name=_('name'))
         name_fr = models.CharField(max_length=255, verbose_name=_('name (French)'))
-        
+
         description = models.TextField(verbose_name=_('description'))
         description_fr = models.TextField(verbose_name=_('description (French)'))
-        
+
         price = models.FloatField(verbose_name=_('price'))
-        
+
         ...
 
 
@@ -89,13 +89,13 @@ Then, you can do this:
         name='French Name', description='French description'
     )
     # You don't have to specify price, because it is not a translatable field
-    
+
     # We're going to assume that the product we created has id=1
     product = Product.objects.get(id=1)
-    
+
     product.name
     -> 'English Name'
-    
+
     product.description
     -> 'English description'
 
@@ -104,12 +104,12 @@ If we **switch languages**, it will automatically retrieve the corresponding tra
 ::
 
     translation.activate('fr')
-    
+
     product = Product.objects.get(id=1)
-    
+
     product.name
     -> 'French Name'
-    
+
     product.description
     -> 'French description'
 
@@ -118,7 +118,7 @@ We can also **retrieve translations for a specific language**, regardless of wha
 ::
 
     translation.activate('en')
-    
+
     product_in_en = Product.objects.get(id=1)
     product_in_fr = product_in_en.get_translation(language='fr')
 
@@ -135,7 +135,7 @@ But they have different names (since name is a translatable field)
 
     product_in_en.name
     -> 'English Name'
-    
+
     product_in_fr.name
     -> 'French Name'
 
@@ -145,7 +145,7 @@ Non-translated fields will have the same value regardless of the language we are
 
     product_in_en.price
     -> 10.0
-    
+
     product_in_fr.price
     -> 10.0
 
@@ -192,32 +192,32 @@ When saving the form, it will automatically save the form data to the fields in 
 ::
 
     translation.activate('fr') # Activate French
-    
+
     data = {'name': 'French Name', 'description': 'French Description', 'price': 37}
     form = ProductForm(data=data)
-    
+
     new_product_fr = form.save()
-    
+
     new_product_fr.name
     -> 'French Name'
-    
+
     new_product_fr.description
     -> 'French Description'
-    
+
     new_product_fr.price
     -> 37.0
-    
+
 
     # Other languages will not be affected
-    
+
     new_product_en = new_product_fr.get_translation(language='en')
-    
+
     new_product_en.name
     -> ''
-    
+
     new_product_en.description
     -> ''
-    
+
     new_product_en.price
     -> 37
      # Of course, non-translatable fields will have a consistent value
@@ -226,7 +226,7 @@ When saving the form, it will automatically save the form data to the fields in 
 Installation
 ------------
 
-1. You just need to ensure ``linguo`` is in your ``PYTHONPATH`` so that you can import ``MultilingualModel`` and ``MultilingualManager``. You can use ``distutils`` to have it installed into your Python packages folder 
+1. You just need to ensure ``linguo`` is in your ``PYTHONPATH`` so that you can import ``MultilingualModel`` and ``MultilingualManager``. You can use ``distutils`` to have it installed into your Python packages folder
 (``python setup.py install``).
 
 2`. Ensure the ``LANGUAGES`` setting contains all the languages for your site.
@@ -243,14 +243,14 @@ Adding new languages
 
 * If using ``south``, perform an automatic schemamigration:
     ::
-    
+
     ./manage.py schemamigration <app-name> --auto
 
 * If NOT using ``south``, examine the schema change by running:
     ::
-    
+
     ./manage.py sql <app-name>
-        
+
     You'll have to manually write the SQL statement to alter the table .
 
 
@@ -269,13 +269,13 @@ For example, if you mark the following field as translatable ...
 ::
 
     name = models.CharField(_('name'), max_length=255)
-    
+
     class Meta:
         translate = ('name',)
-    
+
 ... and you have three languages (en, fr, de). Your model will have the following db fields:
 ::
-    
+
     name = models.CharField(_('name'), max_length=255) # This is for the FIRST language "en"
     name_fr = models.CharField(_('name (French)'), max_length=255) # This is for "fr"
     name_de = models.CharField(_('name (German)'), max_length=255) # This is for "de"
@@ -285,7 +285,7 @@ for the corresponding field that matches the language we are working with.
 
 For example, if the current language is "fr" ...
 ::
-    
+
     product = Product()
     product.name = "test" # --> sets name_fr
 
@@ -309,7 +309,7 @@ For example, if the current language is "fr", and we run the following query ...
 Contributors
 ------------
 
-This app was developed by `Zach Mathew  <https://github.com/zmathew/>`__ 
+This app was developed by `Zach Mathew  <https://github.com/zmathew/>`__
 at `Trapeze Media <http://trapeze.com>`__.
 
 See the AUTHORS file for full list of contributors.
