@@ -1,8 +1,7 @@
 from django import forms
-from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
 
-from linguo.tests.models import Foo, Bar
+from linguo.tests.models import Bar
 
 
 class BarForm(forms.ModelForm):

@@ -1,5 +1,4 @@
 from django.db import models
-from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
 
 from linguo.managers import MultilingualManager
@@ -96,28 +95,29 @@ class Hop(MultilingualModel):
         verbose_name=_('description'),
     )
     price = models.PositiveIntegerField(verbose_name=_('price'))
-    
+
     objects = MultilingualManager()
-    
+
     class Meta:
         translate = ('name', 'description',)
 
 
 class Ord(Foo):
     last_name = models.CharField(max_length=255)
-    
+
     objects = MultilingualManager()
-    
+
     class Meta:
         ordering = ('name', 'last_name', 'id',)
         translate = ('last_name',)
-    
+
     def __unicode__(self):
         return u'%s %s' % (self.name, self.last_name)
 
 
 class Doc(MultilingualModel):
     pdf = models.FileField(upload_to='files/test/')
+
     class Meta:
         translate = ('pdf',)
 
@@ -125,7 +125,7 @@ class Doc(MultilingualModel):
 class Lan(MultilingualModel):
     name = models.CharField(max_length=255)
     language = models.CharField(max_length=255, default=None)
-    
+
     class Meta:
         translate = ('name',)
 

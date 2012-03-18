@@ -7,7 +7,7 @@ from linguo.utils import get_real_field_name
 
 
 def rewrite_lookup_key(model, lookup_key):
-    from linguo.models import MultilingualModel # to avoid circular import
+    from linguo.models import MultilingualModel  # to avoid circular import
     if issubclass(model, MultilingualModel):
         pieces = lookup_key.split('__')
         # If we are doing a lookup on a translatable field, we want to rewrite it to the actual field name
@@ -21,7 +21,7 @@ def rewrite_lookup_key(model, lookup_key):
         elif pieces[0] in map(lambda field: '%s_%s' % (field, settings.LANGUAGES[0][0]), model._meta.translatable_fields):
             # If the lookup field explicitly refers to the primary langauge (eg. "name_en"),
             # we want to rewrite that to point to the actual field name.
-            lookup_key = pieces[0][:-3] # Strip out the language suffix
+            lookup_key = pieces[0][:-3]  # Strip out the language suffix
             remaining_lookup = '__'.join(pieces[1:])
             if remaining_lookup:
                 lookup_key = '%s__%s' % (lookup_key, remaining_lookup)
@@ -32,7 +32,7 @@ def rewrite_lookup_key(model, lookup_key):
         fields_to_trans_models = get_fields_to_translatable_models(model)
         for field_to_trans, transmodel in fields_to_trans_models:
             if pieces[0] == field_to_trans:
-                sub_lookup =  '__'.join(pieces[1:])
+                sub_lookup = '__'.join(pieces[1:])
                 if sub_lookup:
                     sub_lookup = rewrite_lookup_key(transmodel, sub_lookup)
                     lookup_key = '%s__%s' % (pieces[0], sub_lookup)
@@ -43,7 +43,7 @@ def rewrite_lookup_key(model, lookup_key):
 
 def get_fields_to_translatable_models(model):
     results = []
-    from linguo.models import MultilingualModel # to avoid circular import
+    from linguo.models import MultilingualModel  # to avoid circular import
 
     for field_name in model._meta.get_all_field_names():
         field_object, modelclass, direct, m2m = model._meta.get_field_by_name(field_name)
@@ -54,7 +54,7 @@ def get_fields_to_translatable_models(model):
 
 
 class MultilingualQuerySet(models.query.QuerySet):
-    
+
     def __init__(self, *args, **kwargs):
         super(MultilingualQuerySet, self).__init__(*args, **kwargs)
         if self.model and (not self.query.order_by):
@@ -65,7 +65,7 @@ class MultilingualQuerySet(models.query.QuerySet):
                 for key in self.model._meta.ordering:
                     ordering.append(rewrite_lookup_key(self.model, key))
                 self.query.add_ordering(*ordering)
-    
+
     def _filter_or_exclude(self, negate, *args, **kwargs):
         for key, val in kwargs.items():
             new_key = rewrite_lookup_key(self.model, key)
@@ -86,4 +86,3 @@ class MultilingualManager(models.Manager):
 
     def get_query_set(self):
         return MultilingualQuerySet(self.model)
-

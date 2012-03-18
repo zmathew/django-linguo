@@ -36,7 +36,7 @@ INSTALLED_APPS = (
 )
 
 LOCALE_PATHS = (
-    os.path.realpath(os.path.dirname(__file__))+'/locale/',
+    os.path.realpath(os.path.dirname(__file__)) + '/locale/',
 )
 
 SECRET_KEY = 'M$kdhspl@#)*43cas<&dsjk'

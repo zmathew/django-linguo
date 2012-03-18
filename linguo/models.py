@@ -26,7 +26,7 @@ class MultilingualModelBase(ModelBase):
 
         new_obj = super(MultilingualModelBase, cls).__new__(cls, name, bases, attrs)
         new_obj._meta.translatable_fields = inherited_trans_fields + local_trans_fields
-        
+
         # Add a property that masks the translatable fields
         for field_name in local_trans_fields:
             # If there is already a property with the same name, we will leave it
@@ -34,16 +34,16 @@ class MultilingualModelBase(ModelBase):
             # (Django's ModelBase has the ability to detect this and "bail out" but we don't)
             if type(new_obj.__dict__.get(field_name)) == property:
                 continue
-            
+
             # Some fields add a descriptor (ie. FileField), we want to keep that on the model
             if field_name in new_obj.__dict__:
                 primary_lang_field_name = '%s_%s' % (field_name, settings.LANGUAGES[0][0])
                 setattr(new_obj, primary_lang_field_name, new_obj.__dict__[field_name])
-            
+
             getter = MultilingualModelBase.generate_field_getter(field_name)
             setter = MultilingualModelBase.generate_field_setter(field_name)
             setattr(new_obj, field_name, property(getter, setter))
-        
+
         return new_obj
 
     @classmethod
@@ -81,10 +81,10 @@ class MultilingualModelBase(ModelBase):
                 # The new field cannot have the same creation_counter (else the ordering will be arbitrary)
                 # We increment by a decimal point because we don't want to have
                 # to adjust the creation_counter of ALL other subsequent fields
-                lang_field.creation_counter += 0.0001 # Limitation this trick: only supports upto 10,000 languages
+                lang_field.creation_counter += 0.0001  # Limitation this trick: only supports upto 10,000 languages
                 lang_fieldname = get_real_field_name(field, lang_code)
                 lang_field.name = lang_fieldname
-                
+
                 if lang_field.verbose_name is not None:
                     # This is to extract the original value that was passed into ugettext_lazy
                     # We do this so that we avoid evaluating the lazy object.
@@ -94,12 +94,11 @@ class MultilingualModelBase(ModelBase):
                 lang_field.verbose_name = _(u'%(verbose_name)s (%(language)s)' %
                     {'verbose_name': raw_verbose_name, 'language': lang[1]}
                 )
-                
+
                 attrs[lang_fieldname] = lang_field
 
-
         return attrs
-    
+
     @classmethod
     def generate_field_getter(cls, field):
         # Property that masks the getter of a translatable field
@@ -107,7 +106,7 @@ class MultilingualModelBase(ModelBase):
             attrname = '%s_%s' % (field, self_reference._language)
             return getattr(self_reference, attrname)
         return getter
-    
+
     @classmethod
     def generate_field_setter(cls, field):
         # Property that masks a setter of the translatable field
@@ -171,7 +170,7 @@ class MultilingualModel(models.Model):
             lang_codes = [lang[0] for lang in settings.LANGUAGES]
             if kwargs['language'] not in lang_codes:
                 raise ValidationError(u"'%(language)s' is not a valid language." % {'language': kwargs['language']})
-            
+
             self._language = kwargs['language']
             if 'language' not in self._meta.get_all_field_names():
                 del kwargs['language']
@@ -191,7 +190,7 @@ class MultilingualModel(models.Model):
         self._language = settings.LANGUAGES[0][0]
         super(MultilingualModel, self).__init__(*args, **kwargs)
         self._language = language
-    
+
     def save(self, *args, **kwargs):
         # We have to switch to the primary language before saving
         # or else our masking property will return the wrong value for the primary language field
@@ -200,7 +199,7 @@ class MultilingualModel(models.Model):
         super(MultilingualModel, self).save(*args, **kwargs)
         # Now we can switch back
         self._language = language
-    
+
     def get_translation(self, language):
         obj = self._default_manager.get(pk=self.pk)
         obj._language = language
@@ -213,9 +212,9 @@ class MultilingualModel(models.Model):
             )
 
         trans_obj = self.get_translation(language)
-        
+
         for key, val in kwargs.iteritems():
             setattr(trans_obj, key, val)
-        
+
         trans_obj.save()
         return trans_obj
