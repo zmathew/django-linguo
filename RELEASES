@@ -1,3 +1,25 @@
+1.2.5
+=====
+
+Tagged on March 18, 2012
+
+
+Major Code Changes
+------------------
+* None
+
+
+Bugs Fixes and Small Enhancements
+---------------------------------
+* Added SECRET_KEY to test settings to be compatibile with django 1.4
+* Cleaned up some checkstyle issues
+
+
+
+* * *
+
+
+
 1.2.4
 =====
 
@@ -153,7 +175,7 @@ Major Code Changes
 
 Bugs Fixes and Small Enhancements
 ---------------------------------
-* Previous release did not actually fix the circular import issue. Now it is fixed. 
+* Previous release did not actually fix the circular import issue. Now it is fixed.
 
 
 Known issues
