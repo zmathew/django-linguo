@@ -116,6 +116,18 @@ class Tests(LinguoTests):
         obj_fr_en_trans = obj_fr.get_translation(language='en')
         self.assertEquals(obj_fr_en_trans, obj_en)
 
+    def testTranslationSwitching(self):
+        """
+        Test the ability to switch an object's active translation
+        """
+        obj_en = Foo.objects.create(name='Foo', price=10, language='en')
+        obj_fr = obj_en.create_translation(name='FooFr', language='fr')
+        obj = Foo.objects.get(pk=obj_en.pk)
+        obj.translate('en')
+        self.assertEquals(obj.name, 'Foo')
+        obj.translate('fr')
+        self.assertEquals(obj.name, 'FooFr')
+
     def testCreateTranslationWithNewValueForNonTransField(self):
         """
         That value of non-trans fields should be the same for all translations.
