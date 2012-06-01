@@ -123,7 +123,7 @@ We can also **retrieve translations for a specific language**, regardless of wha
     product_in_fr = product_in_en.get_translation(language='fr')
 
 
-Or you can do an **"in place" translate** (unlike `get_translation`, this does not return a new object and avoids hitting the database):
+Or you can do an **"in place" translate** (unlike ``get_translation``, this does not return a new object and avoids hitting the database):
     
     translation.activate('en')
 
