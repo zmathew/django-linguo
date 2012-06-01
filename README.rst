@@ -124,6 +124,7 @@ We can also **retrieve translations for a specific language**, regardless of wha
 
 
 Or you can do an **"in place" translate** (unlike ``get_translation``, this does not return a new object and avoids hitting the database):
+::
     
     translation.activate('en')
 
