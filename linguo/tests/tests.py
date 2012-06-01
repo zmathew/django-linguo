@@ -121,7 +121,7 @@ class Tests(LinguoTests):
         Test the ability to switch an object's active translation
         """
         obj_en = Foo.objects.create(name='Foo', price=10, language='en')
-        obj_fr = obj_en.create_translation(name='FooFr', language='fr')
+        obj_en.create_translation(name='FooFr', language='fr')
         obj = Foo.objects.get(pk=obj_en.pk)
         obj.translate('en')
         self.assertEquals(obj.name, 'Foo')
