@@ -104,7 +104,18 @@ class MultilingualModelBase(ModelBase):
         # Property that masks the getter of a translatable field
         def getter(self_reference):
             attrname = '%s_%s' % (field, self_reference._language)
-            return getattr(self_reference, attrname)
+            translated_attr = getattr(self_reference, attrname)
+            
+            # If empty, fall back to default language
+            if (translated_attr is u'' and
+                    self_reference._language != settings.LANGUAGE_CODE):
+                current_language = self_reference._language
+                self_reference.translate(settings.LANGUAGE_CODE)
+                default_attr = getattr(self_reference, field)
+                self_reference.translate(current_language)
+                return default_attr
+            else:
+                return translated_attr
         return getter
 
     @classmethod
