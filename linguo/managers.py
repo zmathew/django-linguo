@@ -80,6 +80,14 @@ class MultilingualQuerySet(models.query.QuerySet):
             new_args.append(rewrite_lookup_key(self.model, key))
         return super(MultilingualQuerySet, self).order_by(*new_args)
 
+    def update(self, **kwargs):
+        for key, val in kwargs.items():
+            new_key = rewrite_lookup_key(self.model, key)
+            del kwargs[key]
+            kwargs[new_key] = val
+        return super(MultilingualQuerySet, self).update(**kwargs)
+    update.alters_data = True
+
 
 class MultilingualManager(models.Manager):
     use_for_related_fields = True
