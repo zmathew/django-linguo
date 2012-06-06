@@ -110,7 +110,7 @@ If you **modify translatable fields**, it will automatically assign it to curren
 
     translation.activate('en')
 
-    product.name
+    product.name  # This remains untouched in English
     -> 'English Name'
 
 
@@ -118,12 +118,12 @@ Non-translated fields will have the same value regardless of the language we are
 ::
 
     translation.activate('en')
-    product.price
-    -> 10.0
+    product.price = 99
+    product.save()
 
     translation.activate('fr')
     product.price
-    -> 10.0
+    -> 99
 
 
 Querying the database
