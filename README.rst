@@ -4,9 +4,20 @@ Linguo
 
 Overview
 --------
-Linguo is a Django application that provides the ability to have multilingual models (ie. translatable fields on models). This means that you can have fields on a model with different values for different languages.
+Linguo is a Django application that provides the ability to have multilingual models (ie. translatable fields on models). This means that you can have fields on a model with different values for different languages (similar to ugettext, but for models).
 
 It does this by creating additional columns for each language and using accessors to make it transparent to you.
+
+::
+
+    product.name
+    -> 'Foo'
+
+    # If you switch languages, you get the translated value for the field:
+    translation.activate('fr')
+
+    product.name
+    -> 'French Foo'
 
 
 Features
@@ -52,22 +63,6 @@ Assuming your ``LANGUAGES`` settings looks like this ...
     )
 
 
-Behind the scenes, linguo will add columns for each additional language:
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-::
-
-    class Product(MultilingualModel):
-        name = models.CharField(max_length=255, verbose_name=_('name'))
-        name_fr = models.CharField(max_length=255, verbose_name=_('name (French)'))
-
-        description = models.TextField(verbose_name=_('description'))
-        description_fr = models.TextField(verbose_name=_('description (French)'))
-
-        price = models.FloatField(verbose_name=_('price'))
-
-        ...
-
-
 Then, you can do this:
 ~~~~~~~~~~~~~~~~~~~~~~
 
@@ -88,6 +83,7 @@ Then, you can do this:
     product.translate(language='fr',
         name='French Name', description='French description'
     )
+    product.save()
     # You don't have to specify price, because it is not a translatable field
 
 
@@ -118,26 +114,19 @@ Non-translated fields will have the same value regardless of the language we are
 Querying the database
 ~~~~~~~~~~~~~~~~~~~~~
 
-**Filtering and ordering** work as you would expect it to. It will filter/order in the language you are operating in. You need to use ``MultilingualManager`` on the model in order for this feature to work.
+**Filtering and ordering** works as you would expect it to. It will filter/order in the language you are operating in. You need to use ``MultilingualManager`` on the model in order for this feature to work.
 ::
 
     translation.activate('fr')
     Product.objects.filter(name='French Name').order_by('name')
 
 
-If you need to do **cross-language querying**, you can do this:
-::
-
-    translation.activate('en')
-    Product.objects.filter(name='English Name', name_fr='French Name').order_by('name', 'name_fr')
-
-
-ModelForms for Multilingual models
+Model Forms for Multilingual models
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-ModelForms work transparently in the sense that it automatically saves the form data to the current active language.
+Model Forms work transparently in the sense that it automatically saves the form data to the current active language.
 
-But by default, a ModelForm for a Multlingual model will contains all the fields for every language (eg. ``name``, ``name_fr``, etc.). Typically this is not what you want. You just need to specify the ``fields`` attribute so that it doesn't generate separate fields for each language.
+But by default, a Model Form for a Multlingual model will contains **all** the fields for **every language** (eg. ``name``, ``name_fr``, etc.). Typically this is not what you want. You just need to specify the ``fields`` attribute so that it doesn't generate separate fields for each language.
 ::
 
     class ProductForm(forms.ModelForm):
@@ -148,7 +137,7 @@ But by default, a ModelForm for a Multlingual model will contains all the fields
 
 The template output and field names for the form will be the same regardless of the language you are operating in.
 
-When saving the form, it will automatically save the form data to the fields in the current active language.
+When saving the form, it will automatically save the form data to the fields in the **current active language**.
 ::
 
     translation.activate('fr') # Activate French
