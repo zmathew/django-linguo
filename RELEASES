@@ -1,3 +1,24 @@
+1.3.0
+=====
+
+Tagged on June 6, 2012
+
+
+Major Code Changes
+------------------
+* Changed the way translations are created, modified and retrieved (see README)
+
+
+Bugs Fixes and Small Enhancements
+---------------------------------
+* None
+
+
+
+* * *
+
+
+
 1.2.5
 =====
 
