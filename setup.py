@@ -9,7 +9,7 @@ setup(
     package_data={'linguo': ['tests/locale/*/LC_MESSAGES/*']},
     version=linguo.__version__,
     description=linguo.__doc__,
-    long_description=open('README.rst').read(),
+    long_description=open('README.txt').read(),
     classifiers=[
         'Development Status :: 5 - Production/Stable',
         'Intended Audience :: Developers',
