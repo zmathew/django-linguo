@@ -8,6 +8,7 @@ Linguo is a Django application that provides the ability to have multilingual mo
 
 It does this by creating additional columns for each language and using accessors to make it transparent to you.
 
+For example:
 ::
 
     product.name
@@ -87,7 +88,7 @@ Then, you can do this:
     # You don't have to specify price, because it is not a translatable field
 
 
-If we **switch languages**, it will automatically retrieve the corresponding translated values.
+If you **switch languages**, it will automatically retrieve the corresponding translated values.
 ::
 
     translation.activate('fr')
@@ -99,9 +100,23 @@ If we **switch languages**, it will automatically retrieve the corresponding tra
     -> 'French description'
 
 
+If you **modify translatable fields**, it will automatically assign it to current active language.
+::
+
+    translation.activate('fr')
+
+    product.name = 'New French Name'
+    product.save()
+
+    translation.activate('en')
+
+    product.name
+    -> 'English Name'
+
+
 Non-translated fields will have the same value regardless of the language we are operating in.
 ::
-    
+
     translation.activate('en')
     product.price
     -> 10.0
