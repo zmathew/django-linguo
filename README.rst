@@ -82,30 +82,19 @@ Then, you can do this:
     )
 
 
-**Create a translation** for that product.
+**Translate the fields** on that product.
 ::
 
-    product.create_translation(language='fr',
+    product.translate(language='fr',
         name='French Name', description='French description'
     )
     # You don't have to specify price, because it is not a translatable field
-
-    # We're going to assume that the product we created has id=1
-    product = Product.objects.get(id=1)
-
-    product.name
-    -> 'English Name'
-
-    product.description
-    -> 'English description'
 
 
 If we **switch languages**, it will automatically retrieve the corresponding translated values.
 ::
 
     translation.activate('fr')
-
-    product = Product.objects.get(id=1)
 
     product.name
     -> 'French Name'
@@ -114,54 +103,16 @@ If we **switch languages**, it will automatically retrieve the corresponding tra
     -> 'French description'
 
 
-We can also **retrieve translations for a specific language**, regardless of what language we are in.
-::
-
-    translation.activate('en')
-
-    product_in_en = Product.objects.get(id=1)
-    product_in_fr = product_in_en.get_translation(language='fr')
-
-
-The product and its translation have the **same id** since they are **the same object.**
-::
-
-    product_in_en.id == product_in_fr.id
-    -> True
-
-
-But they have different names (since name is a translatable field)
-::
-
-    product_in_en.name
-    -> 'English Name'
-
-    product_in_fr.name
-    -> 'French Name'
-
-
 Non-translated fields will have the same value regardless of the language we are operating in.
-::
-
-    product_in_en.price
-    -> 10.0
-
-    product_in_fr.price
-    -> 10.0
-
-
-Or you can do an **"in place" translate** (unlike ``get_translation``, this does not return a new object and avoids hitting the database):
 ::
     
     translation.activate('en')
+    product.price
+    -> 10.0
 
-    product = Product.objects.get(id=1)
-    product.name
-    -> 'English Name'
-
-    product.translate('fr')
-    product.name
-    -> 'French Name'
+    translation.activate('fr')
+    product.price
+    -> 10.0
 
 
 Querying the database
@@ -177,10 +128,8 @@ Querying the database
 If you need to do **cross-language querying**, you can do this:
 ::
 
-    translation.activate('en
-    ')
-    Product.objects.filter(name='English Name', name_fr='French Name'
-    ).order_by('name', 'name_fr')
+    translation.activate('en')
+    Product.objects.filter(name='English Name', name_fr='French Name').order_by('name', 'name_fr')
 
 
 ModelForms for Multilingual models
@@ -197,9 +146,6 @@ But by default, a ModelForm for a Multlingual model will contains all the fields
             model = Product
 
 
-
-
-
 The template output and field names for the form will be the same regardless of the language you are operating in.
 
 When saving the form, it will automatically save the form data to the fields in the current active language.
@@ -210,29 +156,29 @@ When saving the form, it will automatically save the form data to the fields in 
     data = {'name': 'French Name', 'description': 'French Description', 'price': 37}
     form = ProductForm(data=data)
 
-    new_product_fr = form.save()
+    new_product = form.save()
 
-    new_product_fr.name
+    new_product.name
     -> 'French Name'
 
-    new_product_fr.description
+    new_product.description
     -> 'French Description'
 
-    new_product_fr.price
+    new_product.price
     -> 37.0
 
 
     # Other languages will not be affected
 
-    new_product_en = new_product_fr.get_translation(language='en')
+    translation.activate('en')
 
-    new_product_en.name
+    new_product.name
     -> ''
 
-    new_product_en.description
+    new_product.description
     -> ''
 
-    new_product_en.price
+    new_product.price
     -> 37
      # Of course, non-translatable fields will have a consistent value
 
