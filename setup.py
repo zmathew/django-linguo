@@ -1,4 +1,3 @@
-import os
 from distutils.core import setup
 
 import linguo
@@ -6,7 +5,7 @@ import linguo
 
 setup(
     name='django-linguo',
-    packages=['linguo', 'linguo.tests',],
+    packages=['linguo', 'linguo.tests'],
     package_data={'linguo': ['tests/locale/*/LC_MESSAGES/*']},
     version=linguo.__version__,
     description=linguo.__doc__,
