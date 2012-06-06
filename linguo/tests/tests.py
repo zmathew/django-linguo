@@ -2,14 +2,11 @@
 
 import django
 from django.contrib.auth.models import User
-from django.core.exceptions import ValidationError
 from django.core.urlresolvers import reverse
 from django.db import IntegrityError
 from django.test import TestCase
 from django.utils import translation
-from django.utils.translation import ugettext as _
 
-from linguo.exceptions import InvalidActionError
 from linguo.tests.forms import BarForm, BarFormWithFieldsSpecified, \
     BarFormWithFieldsExcluded
 from linguo.tests.models import Foo, FooRel, Moo, Bar, BarRel, Moe, Gem, \
@@ -36,176 +33,162 @@ class Tests(LinguoTests):
     def testCreation(self):
         translation.activate('en')
         obj = Foo.objects.create(name='Foo', price=10)
-        self.assertTrue(obj._language, 'en')
 
         obj = Foo.objects.get(pk=obj.pk)
         self.assertEquals(obj.name, 'Foo')
         self.assertEquals(obj.price, 10)
 
         translation.activate('fr')
-        obj_fr = Foo.objects.create(name='FrenchName', price=15)
+        Foo.objects.create(name='FrenchName', price=15)
         translation.activate('en')
-        self.assertEquals(obj_fr._language, 'fr')
 
         self.assertEquals(Foo.objects.count(), 2)
 
-    def testCreateWithInvalidLanguageReturnsError(self):
-        try:
-            Foo.objects.create(name='Foo', price=10, language='abcd')
-        except ValidationError, err:
-            self.assertTrue(u"'abcd' is not a valid language." in unicode(err))
+    def testTranslate(self):
+        """
+        We should be able to translate fields on the object.
+        """
+        obj = Foo.objects.create(name='Foo', price=10)
+        obj.translate(name='FooFr', language='fr')
+        obj.save()
+
+        # Refresh from db
+        obj = Foo.objects.get(id=obj.id)
+
+        self.assertEquals(obj.name, 'Foo')
+        self.assertEquals(obj.price, 10)
+
+        translation.activate('fr')
+        self.assertEquals(obj.name, 'FooFr')
+        self.assertEquals(Foo.objects.count(), 1)
 
     def testDelayedCreation(self):
         obj = Foo()
         obj.name = 'Foo'
         obj.price = 10
+
+        translation.activate('fr')
+        obj.name = 'FooFr'
         obj.save()
 
-        obj2 = Foo.objects.get(pk=obj.pk)
-        self.assertEquals(obj2.name, 'Foo')
-        self.assertEquals(obj2.price, 10)
+        translation.activate('en')
+        obj = Foo.objects.get(pk=obj.pk)
+        self.assertEquals(obj.name, 'Foo')
+        self.assertEquals(obj.price, 10)
 
-    def testCreateTranslation(self):
-        """
-        We should be able to create a translation of an object.
-        """
-        obj_en = Foo.objects.create(name='Foo', price=10, language='en')
-        obj_fr = obj_en.create_translation(name='FooFr', language='fr')
-
-        self.assertEquals(type(obj_fr), type(obj_en))
-        self.assertEquals(obj_fr.price, obj_en.price)
-
-        self.assertEquals(obj_en.name, 'Foo')
-        self.assertEquals(obj_fr.name, 'FooFr')
-        self.assertEquals(Foo.objects.count(), 1)
+        translation.activate('fr')
+        self.assertEquals(obj.name, 'FooFr')
+        self.assertEquals(obj.price, 10)
 
     def testMultipleTransFields(self):
-        obj_en = Hop.objects.create(name='hop', description='desc', price=11)
-        obj_fr = obj_en.create_translation(name='hop_fr', description='desc_fr',
+        obj = Hop.objects.create(name='hop', description='desc', price=11)
+        obj.translate(name='hop_fr', description='desc_fr',
             language='fr')
 
-        obj_en = Hop.objects.get(pk=obj_en.pk)  # refresh from db
-        self.assertEquals(obj_en.name, 'hop')
-        self.assertEquals(obj_fr.name, 'hop_fr')
-        self.assertEquals(obj_en.description, 'desc')
-        self.assertEquals(obj_fr.description, 'desc_fr')
-        self.assertEquals(obj_en.price, 11)
-        self.assertEquals(obj_fr.price, 11)
+        self.assertEquals(obj.name, 'hop')
+        self.assertEquals(obj.description, 'desc')
+        self.assertEquals(obj.price, 11)
+
+        translation.activate('fr')
+        self.assertEquals(obj.name, 'hop_fr')
+        self.assertEquals(obj.description, 'desc_fr')
+        self.assertEquals(obj.price, 11)
 
     def testMultipleTransFieldsButNotSettingOneDuringCreation(self):
-        obj_en = Hop.objects.create(name='hop', price=11)
-        self.assertEquals(obj_en.name, 'hop')
-        self.assertEquals(obj_en.price, 11)
+        obj = Hop.objects.create(name='hop', price=11)
+        self.assertEquals(obj.name, 'hop')
+        self.assertEquals(obj.price, 11)
 
-    def testGettingTranslations(self):
-        """
-        Test the ability to get translations of an object
-        """
-        obj_en = Foo.objects.create(name='Foo', price=10, language='en')
-        obj_fr = obj_en.create_translation(name='FooFr', language='fr')
+    def testSwitchingActiveLanguageSetsValuesOnTranslatedFields(self):
+        obj = Foo.objects.create(name='Foo', price=10)
+        obj.translate(name='FooFr', language='fr')
 
-        obj_en = Foo.objects.get(pk=obj_en.pk)
-
-        Foo.objects.create(name='Other', price=30, language='en')
-        self.assertEquals(Foo.objects.count(), 2)
-
-        obj_en_fr_trans = obj_en.get_translation(language='fr')
-        self.assertEquals(obj_en_fr_trans, obj_fr)
-        self.assertEquals(obj_en_fr_trans.price, 10)
-        self.assertEquals(obj_en_fr_trans.get_translation(language='en'), obj_en)
-        obj_fr_en_trans = obj_fr.get_translation(language='en')
-        self.assertEquals(obj_fr_en_trans, obj_en)
-
-    def testTranslationSwitching(self):
-        """
-        Test the ability to switch an object's active translation
-        """
-        obj_en = Foo.objects.create(name='Foo', price=10, language='en')
-        obj_en.create_translation(name='FooFr', language='fr')
-        obj = Foo.objects.get(pk=obj_en.pk)
-        obj.translate('en')
-        self.assertEquals(obj.name, 'Foo')
-        obj.translate('fr')
+        translation.activate('fr')
         self.assertEquals(obj.name, 'FooFr')
+        obj.name = 'NewFooFr'
+
+        translation.activate('en')
+        self.assertEquals(obj.name, 'Foo')
+
+        obj.save()
+
+        # Refresh from db
+        obj = Foo.objects.get(id=obj.id)
+        self.assertEquals(obj.name, 'Foo')
+        translation.activate('fr')
+        self.assertEquals(obj.name, 'NewFooFr')
 
     def testCreateTranslationWithNewValueForNonTransField(self):
         """
         That value of non-trans fields should be the same for all translations.
         """
-        obj_en = Foo.objects.create(name='Foo', price=10, language='en')
-        obj_fr = obj_en.create_translation(name='FooFr', price=20, language='fr')
+        obj = Foo.objects.create(name='Foo', price=10)
+        obj.translate(name='FooFr', price=20, language='fr')
 
-        obj_en = Foo.objects.get(pk=obj_en.pk)  # refresh from db
+        translation.activate('fr')
+        self.assertEquals(obj.name, 'FooFr')
+        self.assertEquals(obj.price, 20)
 
-        self.assertEquals(obj_fr.name, 'FooFr')
-        self.assertEquals(obj_fr.price, 20)
-        # Ensure obj_en has its price changed to the new value.
-        self.assertEquals(obj_en.price, obj_fr.price)
-
-        # Ensure no other fields of obj_en were changed
-        self.assertEquals(obj_en.name, 'Foo')
-        self.assertEquals(obj_en._language, 'en')
-
-    def testCreateTranslationWithoutSaving(self):
-        obj = Foo()
-        obj.name = 'Foo'
-        obj.price = 10
-
-        try:
-            obj.create_translation(name='Foo2', language='fr')
-        except InvalidActionError, e:
-            self.assertEquals(unicode(e),
-                _('Cannot create a translation of an unsaved object.')
-            )
-        else:
-            self.fail()
+        translation.activate('en')
+        self.assertEquals(obj.price, 20)
+        # Ensure no other fields were changed
+        self.assertEquals(obj.name, 'Foo')
 
     def testQuerysetUpdate(self):
-        """
-        Test that calling the update() method on a queryset should keep the db
-        in a consistent state.
-        """
-        obj_en = Foo.objects.create(name='Foo', price=10, language='en')
-        obj_fr = obj_en.create_translation(name='FooFr', language='fr')
-        obj2 = Foo.objects.create(name='Foo2', price=13, language='en')
+        obj = Foo.objects.create(name='Foo', price=10)
+        obj.translate(name='FooFr', language='fr')
+        obj.save()
+
+        obj2 = Foo.objects.create(name='Foo2', price=13)
+        obj2.translate(name='Foo2Fr', language='fr')
+        obj2.save()
 
         qs = Foo.objects.all()
         self.assertEquals(qs.count(), 2)
-        qs.update(price=12)
+        qs.update(name='NewFoo')
 
         # Refresh objects from db
-        obj_en = Foo.objects.get(pk=obj_en.pk)
-        obj_fr = obj_en.get_translation('fr')
+        obj = Foo.objects.get(pk=obj.pk)
         obj2 = Foo.objects.get(pk=obj2.pk)
 
-        self.assertEquals(obj_en.price, 12)
-        self.assertEquals(obj_fr.price, 12)
-        self.assertEquals(obj2.price, 12)
+        self.assertEquals(obj.price, 10)
+        self.assertEquals(obj.name, 'NewFoo')
+        self.assertEquals(obj2.price, 13)
+        self.assertEquals(obj2.name, 'NewFoo')
 
-    def testQuerysetUpdateExcludesOneTranslation(self):
-        """
-        If we have a queryset that excludes one of the translations,
-        and we then call update() changing non-trans field,
-        the excluded translation should be updated aswell.
-        """
-        obj_en = Foo.objects.create(name='Foo', price=10, language='en')
-        obj_fr = obj_en.create_translation(name='FooFr', language='fr')
-        obj2 = Foo.objects.create(name='Foo2', price=13, language='en')
-        obj3 = Foo.objects.create(name='Foo3', price=65, language='en')
+        translation.activate('fr')
+        self.assertEquals(obj.name, 'FooFr')
+        self.assertEquals(obj.price, 10)
+        self.assertEquals(obj2.name, 'Foo2Fr')
+        self.assertEquals(obj2.price, 13)
 
-        qs = Foo.objects.filter(id__in=[obj_en.id, obj2.id])
-        qs.update(price=12)
+    def testQuerysetUpdateInOtherLanguageSetsValuesOnOtherLanguageOnly(self):
+        obj = Foo.objects.create(name='Foo', price=10)
+        obj.translate(name='FooFr', language='fr')
+        obj.save()
+        obj2 = Foo.objects.create(name='Foo2', price=13)
+        obj2.translate(name='Foo2Fr', language='fr')
+        obj2.save()
 
-        # Refresh from db
-        obj_en = Foo.objects.get(pk=obj_en.pk)
-        obj_fr = Foo.objects.get(pk=obj_fr.pk)
+        translation.activate('fr')
+        qs = Foo.objects.all()
+        self.assertEquals(qs.count(), 2)
+        qs.update(name='NewFooFr')
+
+        # Refresh objects from db
+        obj = Foo.objects.get(pk=obj.pk)
         obj2 = Foo.objects.get(pk=obj2.pk)
-        obj3 = Foo.objects.get(pk=obj3.pk)
 
-        self.assertEquals(obj_en.price, 12)
-        self.assertEquals(obj_fr.price, 12)  # This is the key test here
-        self.assertEquals(obj2.price, 12)
-        self.assertEquals(obj3.price, 65)  # This should not have changed
+        self.assertEquals(obj.price, 10)
+        self.assertEquals(obj.name, 'NewFooFr')
+        self.assertEquals(obj2.price, 13)
+        self.assertEquals(obj2.name, 'NewFooFr')
+
+        translation.activate('en')
+        self.assertEquals(obj.name, 'Foo')
+        self.assertEquals(obj.price, 10)
+        self.assertEquals(obj2.name, 'Foo2')
+        self.assertEquals(obj2.price, 13)
 
     def testUniqueTogetherUsingTransFields(self):
         Foo.objects.create(name='Foo', price=10)
@@ -218,105 +201,108 @@ class Tests(LinguoTests):
             self.fail()
 
     def testFilteringOnTransField(self):
-        obj_en = Foo.objects.create(name='English Foo', price=10, language='en')
-        obj_fr = obj_en.create_translation(name='French Foo', language='fr')
+        obj = Foo.objects.create(name='English Foo', price=10)
+        obj.translate(name='French Foo', language='fr')
+        obj.save()
 
         qs = Foo.objects.filter(name="English Foo")
         self.assertEquals(qs.count(), 1)
-        self.assertEquals(qs[0], obj_en)
+        self.assertEquals(qs[0], obj)
 
         qs = Foo.objects.filter(name__startswith="English")
         self.assertEquals(qs.count(), 1)
-        self.assertEquals(qs[0], obj_en)
+        self.assertEquals(qs[0], obj)
         qs = Foo.objects.exclude(name__startswith="English")
         self.assertEquals(qs.count(), 0)
 
         translation.activate('fr')
-
         qs = Foo.objects.filter(name="French Foo")
         self.assertEquals(qs.count(), 1)
-        self.assertEquals(qs[0], obj_fr)
+        self.assertEquals(qs[0], obj)
 
         qs = Foo.objects.filter(name__startswith="French")
         self.assertEquals(qs.count(), 1)
-        self.assertEquals(qs[0], obj_fr)
+        self.assertEquals(qs[0], obj)
         qs = Foo.objects.exclude(name__startswith="French")
         self.assertEquals(qs.count(), 0)
 
     def testFilteringUsingExplicitFieldName(self):
-        obj_en = Foo.objects.create(name='English Foo', price=10, language='en')
-        obj_en.create_translation(name='French Foo', language='fr')
+        obj = Foo.objects.create(name='English Foo', price=10)
+        obj.translate(name='French Foo', language='fr')
+        obj.save()
 
-        obj2_en = Foo.objects.create(name='Another English Foo', price=20, language='en')
-        obj2_en.create_translation(name='Another French Foo', language='fr')
+        obj2 = Foo.objects.create(name='Another English Foo', price=20)
+        obj2.translate(name='Another French Foo', language='fr')
+        obj2.save()
 
         # we're in english
-        translation.activate('en')
         qs = Foo.objects.filter(name_en="English Foo")
         self.assertEquals(qs.count(), 1)
-        self.assertEquals(qs[0], obj_en)
+        self.assertEquals(qs[0], obj)
 
         qs = Foo.objects.filter(name_en__startswith="English")
         self.assertEquals(qs.count(), 1)
-        self.assertEquals(qs[0], obj_en)
+        self.assertEquals(qs[0], obj)
         qs = Foo.objects.exclude(name_en__startswith="English")
         self.assertEquals(qs.count(), 1)
-        self.assertEquals(qs[0], obj2_en)
+        self.assertEquals(qs[0], obj2)
 
         # try using the french field name
         qs = Foo.objects.filter(name_fr="French Foo")
         self.assertEquals(qs.count(), 1)
-        self.assertEquals(qs[0], obj_en)
+        self.assertEquals(qs[0], obj)
 
         qs = Foo.objects.filter(name_fr__startswith="French")
         self.assertEquals(qs.count(), 1)
-        self.assertEquals(qs[0], obj_en)
+        self.assertEquals(qs[0], obj)
         qs = Foo.objects.exclude(name_fr__startswith="French")
         self.assertEquals(qs.count(), 1)
-        self.assertEquals(qs[0], obj2_en)
+        self.assertEquals(qs[0], obj2)
 
         # now try in french
         translation.activate('fr')
         qs = Foo.objects.filter(name_en="English Foo")
         self.assertEquals(qs.count(), 1)
-        self.assertEquals(qs[0], obj_en)
+        self.assertEquals(qs[0], obj)
 
         qs = Foo.objects.filter(name_en__startswith="English")
         self.assertEquals(qs.count(), 1)
-        self.assertEquals(qs[0], obj_en)
+        self.assertEquals(qs[0], obj)
         qs = Foo.objects.exclude(name_en__startswith="English")
         self.assertEquals(qs.count(), 1)
-        self.assertEquals(qs[0], obj2_en)
+        self.assertEquals(qs[0], obj2)
 
         # try using the french field name
         qs = Foo.objects.filter(name_fr="French Foo")
         self.assertEquals(qs.count(), 1)
-        self.assertEquals(qs[0], obj_en)
+        self.assertEquals(qs[0], obj)
 
         qs = Foo.objects.filter(name_fr__startswith="French")
         self.assertEquals(qs.count(), 1)
-        self.assertEquals(qs[0], obj_en)
+        self.assertEquals(qs[0], obj)
         qs = Foo.objects.exclude(name_fr__startswith="French")
         self.assertEquals(qs.count(), 1)
-        self.assertEquals(qs[0], obj2_en)
+        self.assertEquals(qs[0], obj2)
 
     def testOrderingOnTransField(self):
-        obj_en = Foo.objects.create(name='English Foo', price=10, language='en')
-        obj_fr = obj_en.create_translation(name='French Foo', language='fr')
+        obj = Foo.objects.create(name='English Foo', price=10)
+        obj.translate(name='French Foo', language='fr')
+        obj.save()
 
-        obj2 = Foo.objects.create(name='Another English Foo', price=12, language='en')
-        obj2.create_translation(name='Another French Foo', language='fr')
+        obj2 = Foo.objects.create(name='Another English Foo', price=12)
+        obj2.translate(name='Another French Foo', language='fr')
+        obj2.save()
 
         qs = Foo.objects.order_by('name')
         self.assertEquals(qs.count(), 2)
         self.assertEquals(qs[0], obj2)
-        self.assertEquals(qs[1], obj_en)
+        self.assertEquals(qs[1], obj)
 
         translation.activate('fr')
         qs = Foo.objects.order_by('name')
         self.assertEquals(qs.count(), 2)
         self.assertEquals(qs[0], obj2)
-        self.assertEquals(qs[1], obj_fr)
+        self.assertEquals(qs[1], obj)
         self.assertEquals(qs[1].name, 'French Foo')
 
     def testDefaultOrderingIsTransField(self):
@@ -324,13 +310,16 @@ class Tests(LinguoTests):
         Test a model that has a trans field in the default ordering.
         """
         f1 = FooCategory.objects.create(name='B2 foo')
-        f1.create_translation(name='B2 foo', language='fr')
+        f1.translate(name='B2 foo', language='fr')
+        f1.save()
 
         f2 = FooCategory.objects.create(name='A1 foo')
-        f2.create_translation(name='C3 foo', language='fr')
+        f2.translate(name='C3 foo', language='fr')
+        f2.save()
 
         f3 = FooCategory.objects.create(name='C3 foo')
-        f3.create_translation(name='A1 foo', language='fr')
+        f3.translate(name='A1 foo', language='fr')
+        f3.save()
 
         qs_en = FooCategory.objects.all()
         self.assertEquals(qs_en[0], f2)
@@ -345,13 +334,15 @@ class Tests(LinguoTests):
 
     def testFilteringOnRelatedObjectsTransField(self):
         # Test filtering on related object's translatable field
-        obj_en = Foo.objects.create(name='English Foo', price=10, language='en')
-        obj_en.create_translation(name='French Foo', language='fr')
+        obj = Foo.objects.create(name='English Foo', price=10)
+        obj.translate(name='French Foo', language='fr')
+        obj.save()
 
-        obj2 = Foo.objects.create(name='Another English Foo', price=12, language='en')
-        obj2.create_translation(name='Another French Foo', language='fr')
+        obj2 = Foo.objects.create(name='Another English Foo', price=12)
+        obj2.translate(name='Another French Foo', language='fr')
+        obj2.save()
 
-        m1 = FooRel.objects.create(myfoo=obj_en, desc="description 1")
+        m1 = FooRel.objects.create(myfoo=obj, desc="description 1")
         m2 = FooRel.objects.create(myfoo=obj2, desc="description 2")
 
         qs = FooRel.objects.filter(myfoo__name='Another English Foo')
@@ -373,14 +364,16 @@ class Tests(LinguoTests):
         self.assertEquals(qs[0], m1)
 
     def testFilteringOnRelatedObjectsUsingExplicitFieldName(self):
-        obj_en = Foo.objects.create(name='English Foo', price=10, language='en')
-        obj_en.create_translation(name='French Foo', language='fr')
+        obj = Foo.objects.create(name='English Foo', price=10)
+        obj.translate(name='French Foo', language='fr')
+        obj.save()
 
-        obj2_en = Foo.objects.create(name='Another English Foo', price=20, language='en')
-        obj2_en.create_translation(name='Another French Foo', language='fr')
+        obj2 = Foo.objects.create(name='Another English Foo', price=20)
+        obj2.translate(name='Another French Foo', language='fr')
+        obj2.save()
 
-        m1 = FooRel.objects.create(myfoo=obj_en, desc="description 1")
-        m2 = FooRel.objects.create(myfoo=obj2_en, desc="description 2")
+        m1 = FooRel.objects.create(myfoo=obj, desc="description 1")
+        m2 = FooRel.objects.create(myfoo=obj2, desc="description 2")
 
         # we're in english
         translation.activate('en')
@@ -421,8 +414,9 @@ class Tests(LinguoTests):
         self.assertEquals(qs[0], m2)
 
     def testModelWithTranslatableFileField(self):
-        doc_en = Doc.objects.create(pdf='something.pdf')
-        doc_en.create_translation(pdf='something-fr.pdf', language='fr')
+        doc = Doc.objects.create(pdf='something.pdf')
+        doc.translate(pdf='something-fr.pdf', language='fr')
+        doc.save()
 
         translation.activate('en')
         self.assertEqual(Doc.objects.get().pdf.url, 'something.pdf')
@@ -431,8 +425,9 @@ class Tests(LinguoTests):
         self.assertEqual(Doc.objects.get().pdf.url, 'something-fr.pdf')
 
     def testModelWithAFieldCalledLanguageThatIsNotTranslatable(self):
-        lan_en = Lan.objects.create(name='Test en', language='en')
-        lan_en.create_translation(name='Test fr', language='fr')
+        lan = Lan.objects.create(name='Test en', language='en')
+        lan.translate(name='Test fr', language='fr')
+        lan.save()
 
         translation.activate('en')
         self.assertEqual(Lan.objects.get().name, 'Test en')
@@ -454,8 +449,7 @@ class InheritanceTests(LinguoTests):
     def testCreation(self):
         translation.activate('en')
         obj = Bar.objects.create(name='Bar', description='test',
-            price=9, quantity=2, language='en')
-        self.assertTrue(obj._language, 'en')
+            price=9, quantity=2)
 
         obj = Bar.objects.get(pk=obj.pk)
         self.assertEquals(obj.name, 'Bar')
@@ -464,12 +458,35 @@ class InheritanceTests(LinguoTests):
         self.assertEquals(obj.quantity, 2)
 
         translation.activate('fr')
-        obj_fr = Bar.objects.create(name='FrenchBar', description='test in french',
+        Bar.objects.create(name='FrenchBar', description='test in french',
             price=7, quantity=5)
         translation.activate('en')
-        self.assertEquals(obj_fr._language, 'fr')
 
         self.assertEquals(Bar.objects.count(), 2)
+
+    def testTranslate(self):
+        """
+        We should be able to create a translation of an object.
+        """
+        obj = Bar.objects.create(name='Bar', description='test',
+            price=9, quantity=2)
+        obj.translate(name='BarFr', description='test FR',
+            language='fr')
+        obj.save()
+
+        # Refresh from db
+        obj = Bar.objects.get(pk=obj.pk)
+
+        self.assertEquals(obj.name, 'Bar')
+        self.assertEquals(obj.description, 'test')
+        self.assertEquals(obj.price, 9)
+        self.assertEquals(obj.quantity, 2)
+
+        translation.activate('fr')
+        self.assertEquals(obj.name, 'BarFr')
+        self.assertEquals(obj.description, 'test FR')
+        self.assertEquals(obj.price, 9)
+        self.assertEquals(obj.quantity, 2)
 
     def testDelayedCreation(self):
         obj = Bar()
@@ -477,166 +494,133 @@ class InheritanceTests(LinguoTests):
         obj.description = 'Some desc'
         obj.price = 9
         obj.quantity = 2
+
+        translation.activate('fr')
+        obj.name = 'BarFr'
+        obj.description = 'Some desc fr'
         obj.save()
 
-        obj2 = Bar.objects.get(pk=obj.pk)
-        self.assertEquals(obj2.name, 'Bar')
-        self.assertEquals(obj2.description, 'Some desc')
-        self.assertEquals(obj2.price, 9)
-        self.assertEquals(obj2.quantity, 2)
+        translation.activate('en')
+        obj = Bar.objects.get(pk=obj.pk)
+        self.assertEquals(obj.name, 'Bar')
+        self.assertEquals(obj.description, 'Some desc')
+        self.assertEquals(obj.price, 9)
+        self.assertEquals(obj.quantity, 2)
 
-    def testCreateTranslation(self):
-        """
-        We should be able to create a translation of an object.
-        """
-        obj_en = Bar.objects.create(name='Bar', description='test',
-            price=9, quantity=2, language='en')
-        obj_fr = obj_en.create_translation(name='BarFr', description='test FR',
+        translation.activate('fr')
+        self.assertEquals(obj.name, 'BarFr')
+        self.assertEquals(obj.description, 'Some desc fr')
+        self.assertEquals(obj.price, 9)
+        self.assertEquals(obj.quantity, 2)
+
+    def testSwitchingActiveLanguageSetValuesOnTranslatedFields(self):
+        obj = Bar.objects.create(name='Bar', description='test',
+            price=9, quantity=2)
+        obj.translate(name='BarFr', description='test FR',
             language='fr')
 
-        obj_en = Bar.objects.get(pk=obj_en.pk)
+        translation.activate('fr')
+        self.assertEquals(obj.name, 'BarFr')
+        obj.name = 'NewBarFr'
 
-        self.assertEquals(type(obj_fr), type(obj_en))
-        self.assertEquals(obj_en.name, 'Bar')
-        self.assertEquals(obj_fr.name, 'BarFr')
-        self.assertEquals(obj_en.description, 'test')
-        self.assertEquals(obj_fr.description, 'test FR')
-        self.assertEquals(obj_fr.price, obj_en.price)
-        self.assertEquals(obj_fr.quantity, obj_en.quantity)
+        translation.activate('en')
+        self.assertEquals(obj.name, 'Bar')
 
-        self.assertEquals(Foo.objects.count(), 1)
+        obj.save()
 
-    def testGettingTranslations(self):
-        """
-        Test the ability to get translations of an object.
-        """
-        obj_en = Bar.objects.create(name='Bar', description='test',
-            price=9, quantity=2, language='en')
-        obj_fr = obj_en.create_translation(name='BarFr', description='test FR',
-            language='fr')
-
-        obj_en = Bar.objects.get(pk=obj_en.pk)
-
-        Bar.objects.create(name='Bar2', description='test 2',
-            price=19, quantity=21, language='en')
-        self.assertEquals(Foo.objects.count(), 2)
-
-        obj_en_fr_trans = obj_en.get_translation(language='fr')
-        self.assertEquals(obj_en_fr_trans, obj_fr)
-        self.assertEquals(obj_en_fr_trans.price, 9)
-        self.assertEquals(obj_en_fr_trans.quantity, 2)
-        self.assertEquals(obj_en_fr_trans.get_translation(language='en'), obj_en)
-        obj_fr_en_trans = obj_fr.get_translation(language='en')
-        self.assertEquals(obj_fr_en_trans, obj_en)
+        # Refresh from db
+        obj = Foo.objects.get(id=obj.id)
+        self.assertEquals(obj.name, 'Bar')
+        translation.activate('fr')
+        self.assertEquals(obj.name, 'NewBarFr')
 
     def testCreateTranslationWithNewValueForNonTransField(self):
         """
         That value of non-trans fields should be the same for all translations.
         """
 
-        obj_en = Bar.objects.create(name='Bar', description='test',
-            price=9, quantity=2, language='en')
+        obj = Bar.objects.create(name='Bar', description='test',
+            price=9, quantity=2)
+        obj.translate(name='BarFr', description='test FR',
+            price=20, quantity=40, language='fr')
 
-        obj_fr = obj_en.create_translation(name='BarFr', description='test FR',
-            price=20, quantity=40,
-            language='fr')
+        translation.activate('fr')
+        self.assertEquals(obj.name, 'BarFr')
+        self.assertEquals(obj.description, 'test FR')
+        self.assertEquals(obj.price, 20)
+        self.assertEquals(obj.quantity, 40)
 
-        obj_en = Bar.objects.get(pk=obj_en.pk)  # refresh from db
-
-        self.assertEquals(obj_fr.name, 'BarFr')
-        self.assertEquals(obj_fr.description, 'test FR')
-        self.assertEquals(obj_fr.price, 20)
-        self.assertEquals(obj_fr.quantity, 40)
-        # Ensure obj_en has its price changed to the new value.
-        self.assertEquals(obj_en.price, obj_fr.price)
-        self.assertEquals(obj_en.quantity, 40)
-
-        # Ensure no other fields of obj_en were changed
-        self.assertEquals(obj_en.name, 'Bar')
-        self.assertEquals(obj_en.description, 'test')
-        self.assertEquals(obj_en._language, 'en')
-
-    def testCreateTranslationWithoutSaving(self):
-        obj = Bar()
-        obj.name = 'Bar'
-        obj.description = 'Some description'
-        obj.price = 10
-        obj.quantity = 2
-
-        try:
-            obj.create_translation(name='Bar2', description='sadfsd',
-                price=13, quantity=3, language='fr')
-        except InvalidActionError, e:
-            self.assertEquals(unicode(e),
-                _('Cannot create a translation of an unsaved object.')
-            )
-        else:
-            self.fail()
+        translation.activate('en')
+        self.assertEquals(obj.price, 20)
+        self.assertEquals(obj.quantity, 40)
+        # Ensure no other fields were changed
+        self.assertEquals(obj.name, 'Bar')
+        self.assertEquals(obj.description, 'test')
 
     def testQuerysetUpdate(self):
-        """
-        Test that calling the update() method on a queryset should keep the db
-        in a consistent state.
-        """
-
-        obj_en = Bar.objects.create(name='Bar', description='test',
-            price=9, quantity=2, language='en')
-        obj_fr = obj_en.create_translation(name='BarFr', description='test FR',
+        obj = Bar.objects.create(name='Bar', description='test',
+            price=9, quantity=2)
+        obj.translate(name='BarFr', description='test FR',
             language='fr')
+        obj.save()
+
         obj2 = Bar.objects.create(name='Bar2', description='bar desc',
-            price=13, quantity=5, language='en')
+            price=13, quantity=5)
+        obj2.translate(name='Bar2Fr', description='test2 FR',
+            language='fr')
+        obj2.save()
 
         qs = Bar.objects.all()
         self.assertEquals(qs.count(), 2)
-        qs.update(price=88)
-        qs.update(quantity=99)
+        qs.update(name='NewBar', quantity=99)
 
         # Refresh objects from db
-        obj_en = Bar.objects.get(pk=obj_en.pk)
-        obj_fr = obj_en.get_translation('fr')
+        obj = Bar.objects.get(pk=obj.pk)
         obj2 = Bar.objects.get(pk=obj2.pk)
 
-        self.assertEquals(obj_en.price, 88)
-        self.assertEquals(obj_fr.price, 88)
-        self.assertEquals(obj2.price, 88)
-        self.assertEquals(obj_en.quantity, 99)
-        self.assertEquals(obj_fr.quantity, 99)
+        self.assertEquals(obj.name, 'NewBar')
+        self.assertEquals(obj.quantity, 99)
+        self.assertEquals(obj2.name, 'NewBar')
         self.assertEquals(obj2.quantity, 99)
 
-    def testQuerysetUpdateExcludesOneTranslation(self):
-        """
-        If we have a queryset that excludes one of the translations,
-        and we then call update() changing non-trans field,
-        the excluded translation should be updated aswell.
-        """
-        obj_en = Bar.objects.create(name='Bar', description='test',
-            price=9, quantity=2, language='en')
-        obj_fr = obj_en.create_translation(name='BarFr', description='test FR',
+        translation.activate('fr')
+        self.assertEquals(obj.name, 'BarFr')
+        self.assertEquals(obj.quantity, 99)
+        self.assertEquals(obj2.name, 'Bar2Fr')
+        self.assertEquals(obj2.quantity, 99)
+
+    def testQuerysetUpdateInOtherLanguageSetsValuesOnOtherLanguageOnly(self):
+        obj = Bar.objects.create(name='Bar', description='test',
+            price=9, quantity=2)
+        obj.translate(name='BarFr', description='test FR',
             language='fr')
+        obj.save()
 
-        obj2 = Bar.objects.create(name='Bar2', description='bar2 desc',
-            price=22, quantity=25, language='en')
-        obj3 = Bar.objects.create(name='Bar3', description='bar3 desc',
-            price=33, quantity=35, language='en')
+        obj2 = Bar.objects.create(name='Bar2', description='bar desc',
+            price=13, quantity=5)
+        obj2.translate(name='Bar2Fr', description='test2 FR',
+            language='fr')
+        obj2.save()
 
-        qs = Bar.objects.filter(id__in=[obj_en.id, obj2.id])
-        qs.update(price=54)
-        qs.update(quantity=7)
+        translation.activate('fr')
+        qs = Bar.objects.all()
+        self.assertEquals(qs.count(), 2)
+        qs.update(name='NewBarFr', quantity=99)
 
-        # Refresh from db
-        obj_en = Bar.objects.get(pk=obj_en.pk)
-        obj_fr = Bar.objects.get(pk=obj_fr.pk)
+        # Refresh objects from db
+        obj = Bar.objects.get(pk=obj.pk)
         obj2 = Bar.objects.get(pk=obj2.pk)
-        obj3 = Bar.objects.get(pk=obj3.pk)
 
-        self.assertEquals(obj_en.price, 54)
-        self.assertEquals(obj_fr.price, 54)  # This is the key test here
-        self.assertEquals(obj_en.quantity, 7)
-        self.assertEquals(obj_fr.quantity, 7)
-        self.assertEquals(obj2.price, 54)
-        self.assertEquals(obj2.quantity, 7)
-        self.assertEquals(obj3.price, 33)  # This should not have changed
-        self.assertEquals(obj3.quantity, 35)  # This should not have changed
+        self.assertEquals(obj.name, 'NewBarFr')
+        self.assertEquals(obj.quantity, 99)
+        self.assertEquals(obj2.name, 'NewBarFr')
+        self.assertEquals(obj2.quantity, 99)
+
+        translation.activate('en')
+        self.assertEquals(obj.name, 'Bar')
+        self.assertEquals(obj.quantity, 99)
+        self.assertEquals(obj2.name, 'Bar2')
+        self.assertEquals(obj2.quantity, 99)
 
     def testUniqueTogether(self):
         """
@@ -664,55 +648,57 @@ class InheritanceTests(LinguoTests):
             self.fail()
 
     def testFilteringOnTransField(self):
-        obj_en = Bar.objects.create(name='English Bar', description='English test',
-            price=9, quantity=2, language='en')
-        obj_fr = obj_en.create_translation(name='French Bar', description='French test',
+        obj = Bar.objects.create(name='English Bar', description='English test',
+            price=9, quantity=2)
+        obj.translate(name='French Bar', description='French test',
             language='fr')
+        obj.save()
 
         qs = Bar.objects.filter(name="English Bar")
         self.assertEquals(qs.count(), 1)
-        self.assertEquals(qs[0], obj_en)
+        self.assertEquals(qs[0], obj)
 
         qs = Bar.objects.filter(name__startswith="English")
         self.assertEquals(qs.count(), 1)
-        self.assertEquals(qs[0], obj_en)
+        self.assertEquals(qs[0], obj)
         qs = Bar.objects.exclude(name__startswith="English")
         self.assertEquals(qs.count(), 0)
 
         translation.activate('fr')
-
         qs = Bar.objects.filter(name="French Bar")
         self.assertEquals(qs.count(), 1)
-        self.assertEquals(qs[0], obj_fr)
+        self.assertEquals(qs[0], obj)
 
         qs = Bar.objects.filter(name__startswith="French")
         self.assertEquals(qs.count(), 1)
-        self.assertEquals(qs[0], obj_fr)
+        self.assertEquals(qs[0], obj)
         qs = Bar.objects.exclude(name__startswith="French")
         self.assertEquals(qs.count(), 0)
 
     def testOrderingOnTransField(self):
-        obj_en = Bar.objects.create(name='English Bar', description='English test',
-            price=9, quantity=2, language='en')
-        obj_fr = obj_en.create_translation(name='French Bar', description='French test',
+        obj = Bar.objects.create(name='English Bar', description='English test',
+            price=9, quantity=2)
+        obj.translate(name='French Bar', description='French test',
             language='fr')
+        obj.save()
 
         obj2 = Bar.objects.create(name='Another English Bar', description='another english test',
-            price=22, quantity=25, language='en')
-        obj2.create_translation(name='Another French Bar', description='another french test',
+            price=22, quantity=25)
+        obj2.translate(name='Another French Bar', description='another french test',
             language='fr')
+        obj2.save()
 
         qs = Bar.objects.order_by('name')
         self.assertEquals(qs.count(), 2)
         self.assertEquals(qs[0], obj2)
-        self.assertEquals(qs[1], obj_en)
+        self.assertEquals(qs[1], obj)
 
         translation.activate('fr')
 
         qs = Bar.objects.order_by('name')
         self.assertEquals(qs.count(), 2)
         self.assertEquals(qs[0], obj2)
-        self.assertEquals(qs[1], obj_fr)
+        self.assertEquals(qs[1], obj)
         self.assertEquals(qs[1].name, 'French Bar')
 
     def testDefaultOrderingIsTransAndInheritedTransField(self):
@@ -720,16 +706,20 @@ class InheritanceTests(LinguoTests):
         Test a model that has an inherited trans field in the default ordering.
         """
         o1 = Ord.objects.create(name='B2 test', price=1)
-        o1.create_translation(name='B2 test F', price=1, language='fr')
+        o1.translate(name='B2 test F', price=1, language='fr')
+        o1.save()
 
         o2 = Ord.objects.create(name='A1 test', price=2, last_name='Appleseed')
-        o2.create_translation(name='C3 test F', price=2, last_name='Charlie', language='fr')
+        o2.translate(name='C3 test F', price=2, last_name='Charlie', language='fr')
+        o2.save()
 
         o2b = Ord.objects.create(name='A1 test', price=3, last_name='Zoltan')
-        o2b.create_translation(name='C3 test F', price=3, last_name='Bobby', language='fr')
+        o2b.translate(name='C3 test F', price=3, last_name='Bobby', language='fr')
+        o2b.save()
 
         o3 = Ord.objects.create(name='C3 foo', price=4)
-        o3.create_translation(name='A1 test F', price=4, language='fr')
+        o3.translate(name='A1 test F', price=4, language='fr')
+        o3.save()
 
         qs_en = Ord.objects.all()
         self.assertEquals(qs_en[0], o2)
@@ -745,17 +735,19 @@ class InheritanceTests(LinguoTests):
         self.assertEquals(qs_fr[3], o2)
 
     def testFilteringOnRelatedObjectsTransField(self):
-        obj_en = Bar.objects.create(name='English Bar', description='English test',
-            price=9, quantity=2, language='en')
-        obj_en.create_translation(name='French Bar', description='French test',
+        obj = Bar.objects.create(name='English Bar', description='English test',
+            price=9, quantity=2)
+        obj.translate(name='French Bar', description='French test',
             language='fr')
+        obj.save()
 
         obj2 = Bar.objects.create(name='Another English Bar', description='another english test',
-            price=22, quantity=25, language='en')
-        obj2.create_translation(name='Another French Bar', description='another french test',
+            price=22, quantity=25)
+        obj2.translate(name='Another French Bar', description='another french test',
             language='fr')
+        obj2.save()
 
-        m1 = BarRel.objects.create(mybar=obj_en, desc="description 1")
+        m1 = BarRel.objects.create(mybar=obj, desc="description 1")
         m2 = BarRel.objects.create(mybar=obj2, desc="description 2")
 
         qs = BarRel.objects.filter(mybar__name='Another English Bar')
@@ -781,56 +773,52 @@ class InheritanceTests(LinguoTests):
         Test a model that extends an abstract model an defines a new
         non trans field.
         """
-        obj_en = Moe.objects.create(language='en',
-           name='test', description='test description', price=5, quantity=3)
-        obj_fr = obj_en.create_translation(language='fr',
+        obj = Moe.objects.create(name='test', description='test description',
+            price=5, quantity=3
+        )
+        obj.translate(language='fr',
             name='test-fr', description='test description fr'
         )
+        obj.save()
 
-        obj_en = Moe.objects.get(pk=obj_en.pk)
-        self.assertEquals(obj_en.name, 'test')
-        self.assertEquals(obj_en.description, 'test description')
-        self.assertEquals(obj_en.price, 5)
-        self.assertEquals(obj_en.quantity, 3)
+        obj = Moe.objects.get(pk=obj.pk)
+        self.assertEquals(obj.name, 'test')
+        self.assertEquals(obj.description, 'test description')
+        self.assertEquals(obj.price, 5)
+        self.assertEquals(obj.quantity, 3)
 
-        Moe.objects.create(language='en',
-           name='Other', description='test other', price=15, quantity=13)
+        Moe.objects.create(name='Other', description='test other', price=15, quantity=13)
 
         self.assertEquals(Moe.objects.count(), 2)
 
-        obj_en_fr_trans = obj_en.get_translation(language='fr')
-        self.assertEquals(obj_en_fr_trans, obj_fr)
-        self.assertEquals(obj_en_fr_trans.name, 'test-fr')
-        self.assertEquals(obj_en_fr_trans.description, 'test description fr')
-        self.assertEquals(obj_en_fr_trans.price, 5)
-        self.assertEquals(obj_en_fr_trans.quantity, 3)
-
-        self.assertEquals(obj_en_fr_trans.get_translation(language='en'), obj_en)
-        obj_fr_en_trans = obj_fr.get_translation(language='en')
-        self.assertEquals(obj_fr_en_trans, obj_en)
+        translation.activate('fr')
+        self.assertEquals(obj.name, 'test-fr')
+        self.assertEquals(obj.description, 'test description fr')
+        self.assertEquals(obj.price, 5)
+        self.assertEquals(obj.quantity, 3)
 
     def testExtendingAbstractKeepsNonTransFields(self):
-        obj_en = Moe.objects.create(language='en',
-           name='test', description='test description', price=5, quantity=3)
-        obj_fr = obj_en.create_translation(language='fr',
+        obj = Moe.objects.create(
+           name='test', description='test description', price=5, quantity=3
+        )
+        obj.translate(language='fr',
             name='test-fr', description='test description fr',
             price=13  # Changing price
         )
-        obj_fr.quantity = 99  # Changing quantity
-        obj_fr.save()
+        obj.quantity = 99  # Changing quantity
+        obj.save()
 
-        obj_en = Moe.objects.get(pk=obj_en.pk)
-        self.assertEquals(obj_en.price, 13)
-        self.assertEquals(obj_en.quantity, 99)
+        obj = Moe.objects.get(pk=obj.pk)
+        self.assertEquals(obj.price, 13)
+        self.assertEquals(obj.quantity, 99)
 
-        obj_en.price = 66
-        obj_en.quantity = 77
-        obj_en.save()
+        obj.price = 66
+        obj.quantity = 77
+        obj.save()
 
         translation.activate('fr')
-        obj_fr = Moe.objects.get(pk=obj_fr.pk)
-        self.assertEquals(obj_fr.price, 66)
-        self.assertEquals(obj_fr.quantity, 77)
+        self.assertEquals(obj.price, 66)
+        self.assertEquals(obj.quantity, 77)
 
 
 class ForeignKeyTests(LinguoTests):
@@ -840,118 +828,119 @@ class ForeignKeyTests(LinguoTests):
         A trans model has a foreign key to another trans model.
         The foreign key is not language specific.
         """
-        obj_en = Foo.objects.create(name='English Foo', price=10, language='en')
+        obj = Foo.objects.create(name='English Foo', price=10)
+        obj.translate(name='French Foo', language='fr')
+        obj.save()
 
-        obj2 = Foo.objects.create(name='Another English Foo', price=12, language='en')
-        obj2.create_translation(name='Another French Foo', language='fr')
+        obj2 = Foo.objects.create(name='Another English Foo', price=12)
+        obj2.translate(name='Another French Foo', language='fr')
+        obj2.save()
 
-        rel1 = Gem.objects.create(somefoo=obj_en, gemtype='a')
-        rel1_fr = rel1.create_translation(gemtype='b', language='fr')
+        rel1 = Gem.objects.create(somefoo=obj, gemtype='a')
+        rel1.translate(gemtype='b', language='fr')
+        rel1.save()
 
         rel2 = Gem.objects.create(somefoo=obj2, gemtype='a')
 
-        rel1 = Gem.objects.get(pk=rel1.pk)
-        rel2 = Gem.objects.get(pk=rel2.pk)
-
-        self.assertEquals(rel1.somefoo, obj_en)
-        rel1_fr = rel1.get_translation('fr')
-        self.assertEquals(rel1_fr.somefoo, obj_en)
-
+        self.assertEquals(rel1.somefoo, obj)
         # Ensure the reverse manager returns expected results
-        self.assertEquals(obj_en.gem_set.count(), 1)
-        self.assertEquals(obj_en.gem_set.all()[0], rel1)
-        # The translation should have the consistent results
-        obj_fr = obj_en.create_translation(name='French Foo', language='fr')
-        self.assertEquals(obj_fr.gem_set.count(), 1)
-        self.assertEquals(obj_fr.gem_set.all()[0], rel1)
+        self.assertEquals(obj.gem_set.count(), 1)
+        self.assertEquals(obj.gem_set.all()[0], rel1)
 
+        translation.activate('fr')
+        self.assertEquals(rel1.somefoo, obj)
+        self.assertEquals(obj.gem_set.count(), 1)
+        self.assertEquals(obj.gem_set.all()[0], rel1)
+
+        translation.activate('en')
         self.assertEquals(rel2.somefoo, obj2)
         self.assertEquals(obj2.gem_set.count(), 1)
         self.assertEquals(obj2.gem_set.all()[0], rel2)
 
-    def testChangeFKOnTranslation(self):
-        """
-        Test for consistency when you change the foreign key on a translation.
-        """
-        obj_en = Foo.objects.create(name='English Foo', price=10, language='en')
+    def testChangeFKWithInTranslatedLanguage(self):
+        obj = Foo.objects.create(name='English Foo', price=10)
 
-        obj2 = Foo.objects.create(name='Another English Foo', price=12, language='en')
-        obj2_fr = obj2.create_translation(name='Another French Foo', language='fr')
+        obj2 = Foo.objects.create(name='Another English Foo', price=12)
+        obj2.translate(name='Another French Foo', language='fr')
+        obj2.save()
 
-        rel1 = Gem.objects.create(somefoo=obj_en, gemtype='a')
-        rel1_fr = rel1.create_translation(gemtype='b', language='fr')
-        rel1_fr.somefoo = obj2
-        rel1_fr.save()
+        rel1 = Gem.objects.create(somefoo=obj, gemtype='a')
+        rel1.translate(gemtype='b', language='fr')
+        rel1.save()
 
+        translation.activate('fr')
+        rel1.somefoo = obj2
+        rel1.save()
+
+        translation.activate('en')
         rel2 = Gem.objects.create(somefoo=obj2, gemtype='a')
-
         rel1 = Gem.objects.get(pk=rel1.pk)
         self.assertEquals(rel1.somefoo, obj2)
-        self.assertEquals(rel1_fr.somefoo, obj2)
         self.assertEquals(rel2.somefoo, obj2)
 
         self.assertEquals(obj2.gem_set.count(), 2)
         self.assertEquals(obj2.gem_set.order_by('id')[0], rel1)
         self.assertEquals(obj2.gem_set.order_by('id')[1], rel2)
 
-        self.assertEquals(obj2_fr.gem_set.count(), 2)
-        self.assertEquals(obj2_fr.gem_set.order_by('id')[0], rel1)
-        self.assertEquals(obj2_fr.gem_set.order_by('id')[1], rel2)
+        translation.activate('fr')
+        self.assertEquals(obj2.gem_set.count(), 2)
+        self.assertEquals(obj2.gem_set.order_by('id')[0], rel1)
+        self.assertEquals(obj2.gem_set.order_by('id')[1], rel2)
 
-        self.assertEquals(obj_en.gem_set.count(), 0)
+        self.assertEquals(obj.gem_set.count(), 0)
 
     def testRemoveFk(self):
         """
         Test for consistency when you remove a foreign key connection.
         """
-        obj_en = Foo.objects.create(name='English Foo', price=10, language='en')
-        obj_fr = obj_en.create_translation(name='French Foo', language='fr')
+        obj = Foo.objects.create(name='English Foo', price=10)
+        obj.translate(name='French Foo', language='fr')
 
-        obj2 = Foo.objects.create(name='Another English Foo', price=12, language='en')
+        obj2 = Foo.objects.create(name='Another English Foo', price=12)
 
-        rel1 = Gem.objects.create(somefoo=obj_en, gemtype='a')
-        rel1_fr = rel1.create_translation(gemtype='b', language='fr')
+        rel1 = Gem.objects.create(somefoo=obj, gemtype='a')
+        rel1.translate(gemtype='b', language='fr')
         rel1.somefoo = None
         rel1.save()
 
         rel2 = Gem.objects.create(somefoo=obj2, gemtype='a')
 
-        rel1 = Gem.objects.get(pk=rel1.pk)
-        rel1_fr = Gem.objects.get(pk=rel1_fr.pk)
+        translation.activate('fr')
         self.assertEquals(rel1.somefoo, None)
-        self.assertEquals(rel1_fr.somefoo, None)
         self.assertEquals(rel2.somefoo, obj2)
-        self.assertEquals(obj_en.gem_set.count(), 0)
-        self.assertEquals(obj_fr.gem_set.count(), 0)
+        self.assertEquals(obj.gem_set.count(), 0)
         self.assertEquals(obj2.gem_set.count(), 1)
 
     def testFKReverseCreation(self):
         """
         Test creating an object using the reverse manager.
         """
-        Foo.objects.create(name='English Foo', price=10, language='en')
-        obj2 = Foo.objects.create(name='Another English Foo', price=12, language='en')
-        obj2_fr = obj2.create_translation(name='Another French Foo', language='fr')
+        Foo.objects.create(name='English Foo', price=10)
+        obj2 = Foo.objects.create(name='Another English Foo', price=12)
+        obj2.translate(name='Another French Foo', language='fr')
+        obj2.save()
 
         rel1 = obj2.gem_set.create(gemtype='a')
 
         obj2 = Foo.objects.get(pk=obj2.pk)
-        obj2_fr = Foo.objects.get(pk=obj2_fr.pk)
 
         self.assertEquals(obj2.gem_set.count(), 1)
         self.assertEquals(obj2.gem_set.order_by('id')[0], rel1)
-        self.assertEquals(obj2_fr.gem_set.count(), 1)
-        self.assertEquals(obj2_fr.gem_set.order_by('id')[0], rel1)
+
+        translation.activate('fr')
+        self.assertEquals(obj2.gem_set.count(), 1)
+        self.assertEquals(obj2.gem_set.order_by('id')[0], rel1)
 
     def testFKReverseAddition(self):
         """
         Test adding an object using the reverse manager.
         """
-        obj_en = Foo.objects.create(name='English Foo', price=10, language='en')
-        obj2 = Foo.objects.create(name='Another English Foo', price=12, language='en')
-        obj2.create_translation(name='Another French Foo', language='fr')
+        obj = Foo.objects.create(name='English Foo', price=10)
+        obj2 = Foo.objects.create(name='Another English Foo', price=12)
+        obj2.translate(name='Another French Foo', language='fr')
+        obj2.save()
 
-        rel1 = Gem.objects.create(somefoo=obj_en, gemtype='a')
+        rel1 = Gem.objects.create(somefoo=obj, gemtype='a')
         obj2.gem_set.add(rel1)
         rel1 = Gem.objects.get(pk=rel1.pk)
         self.assertEquals(rel1.somefoo, obj2)
@@ -962,93 +951,98 @@ class ForeignKeyTests(LinguoTests):
         """
         Test removing an object using the reverse manager.
         """
-        obj_en = Foo.objects.create(name='English Foo', price=10, language='en')
-        obj2 = Foo.objects.create(name='Another English Foo', price=12, language='en')
-        obj2_fr = obj2.create_translation(name='Another French Foo', language='fr')
+        obj = Foo.objects.create(name='English Foo', price=10)
+        obj2 = Foo.objects.create(name='Another English Foo', price=12)
+        obj2.translate(name='Another French Foo', language='fr')
+        obj2.save()
 
-        rel1 = Gem.objects.create(somefoo=obj_en, gemtype='a')
-        rel1_fr = rel1.create_translation(gemtype='b', language='fr')
+        rel1 = Gem.objects.create(somefoo=obj, gemtype='a')
+        rel1.translate(gemtype='b', language='fr')
 
         obj2.gem_set.add(rel1)
 
         rel1 = Gem.objects.get(pk=rel1.pk)
-        rel1_fr = Gem.objects.get(pk=rel1_fr.pk)
         self.assertEquals(rel1.somefoo, obj2)
-        self.assertEquals(rel1_fr.somefoo, obj2)
 
-        self.assertEquals(obj_en.gem_set.count(), 0)
+        self.assertEquals(obj.gem_set.count(), 0)
         self.assertEquals(obj2.gem_set.count(), 1)
         self.assertEquals(obj2.gem_set.all()[0], rel1)
-        self.assertEquals(obj2_fr.gem_set.count(), 1)
-        self.assertEquals(obj2_fr.gem_set.all()[0], rel1)
 
+        translation.activate('fr')
+        self.assertEquals(rel1.somefoo, obj2)
+        self.assertEquals(obj.gem_set.count(), 0)
+        self.assertEquals(obj2.gem_set.count(), 1)
+        self.assertEquals(obj2.gem_set.all()[0], rel1)
+
+        translation.activate('en')
         obj2.gem_set.remove(rel1)
         rel1 = Gem.objects.get(pk=rel1.pk)
-        rel1_fr = Gem.objects.get(pk=rel1_fr.pk)
         self.assertEquals(rel1.somefoo, None)
-        self.assertEquals(rel1_fr.somefoo, None)
         self.assertEquals(obj2.gem_set.count(), 0)
-        self.assertEquals(obj2_fr.gem_set.count(), 0)
 
-    def testFKToTranslation(self):
-        """
-        Test when the foreign key points to a translation of an object.
-        """
-        obj_en = Foo.objects.create(name='English Foo', price=10, language='en')
-        obj_fr = obj_en.create_translation(name='French Foo', language='fr')
+        translation.activate('fr')
+        self.assertEquals(rel1.somefoo, None)
+        self.assertEquals(obj2.gem_set.count(), 0)
 
-        rel1 = Gem.objects.create(language='en', gemtype='a', somefoo=obj_fr)
+    def testSetFKInTranslatedLanguage(self):
+        obj = Foo.objects.create(name='English Foo', price=10)
+        obj.translate(name='French Foo', language='fr')
+        obj.save()
 
-        self.assertEquals(obj_fr.gem_set.count(), 1)
-        self.assertEquals(obj_fr.gem_set.all()[0], rel1)
+        translation.activate('fr')
+        rel1 = Gem.objects.create(gemtype='a', somefoo=obj)
 
-        self.assertEquals(obj_en.gem_set.count(), 1)
-        self.assertEquals(obj_en.gem_set.all()[0], rel1)
+        translation.activate('en')
+        self.assertEquals(obj.gem_set.count(), 1)
+        self.assertEquals(obj.gem_set.all()[0], rel1)
 
-    def testFKReverseAdditionOnTranslation(self):
-        """
-        Test adding an object using the reverse manager of a translation.
-        """
-        obj_en = Foo.objects.create(name='English Foo', price=10, language='en')
-        obj_fr = obj_en.create_translation(name='French Foo', language='fr')
+    def testFKReverseAdditionOnTranslatedLanguage(self):
+        obj = Foo.objects.create(name='English Foo', price=10)
+        obj.translate(name='French Foo', language='fr')
+        obj.save()
 
-        rel1 = Gem.objects.create(language='en', gemtype='a')
-        obj_fr.gem_set.add(rel1)
+        rel1 = Gem.objects.create(gemtype='a')
+
+        translation.activate('fr')
+        obj.gem_set.add(rel1)
         rel1 = Gem.objects.get(pk=rel1.pk)
 
-        self.assertEquals(rel1.somefoo, obj_fr)
+        self.assertEquals(rel1.somefoo, obj)
 
-        self.assertEquals(obj_fr.gem_set.count(), 1)
-        self.assertEquals(obj_fr.gem_set.all()[0], rel1)
-        self.assertEquals(obj_en.gem_set.count(), 1)
-        self.assertEquals(obj_en.gem_set.all()[0], rel1)
+        self.assertEquals(obj.gem_set.count(), 1)
+        self.assertEquals(obj.gem_set.all()[0], rel1)
 
 
 class ManyToManyTests(LinguoTests):
 
     def testCreateM2M(self):
-        obj = Foo.objects.create(name='English Foo', price=10, language='en')
+        obj = Foo.objects.create(name='English Foo', price=10)
         cat = obj.categories.create(name='C1')
         cat2 = FooCategory.objects.create(name='C2')
 
         self.assertEquals(obj.categories.count(), 1)
         self.assertEquals(obj.categories.all()[0], cat)
 
-        # obj fr should have the same categories
-        obj_fr = obj.create_translation(language='fr', name='French Foo')
+        obj.translate(language='fr', name='French Foo')
+        obj.save()
 
-        self.assertEquals(obj_fr.categories.count(), 1)
-        self.assertEquals(obj_fr.categories.all()[0], cat)
+        translation.activate('fr')
+        self.assertEquals(obj.categories.count(), 1)
+        self.assertEquals(obj.categories.all()[0], cat)
 
         # Reverse lookup should return only foo
         self.assertEquals(cat.foo_set.count(), 1)
         self.assertEquals(cat.foo_set.all()[0], obj)
 
-        # cat fr should have the same foo
-        cat_fr = cat.create_translation(language='fr', name='C1 fr')
-        self.assertEquals(cat_fr.foo_set.all()[0], obj)
+        translation.activate('en')
+        cat.translate(language='fr', name='C1 fr')
+        cat.save()
 
-        obj2 = Foo.objects.create(language='en', name='Another Foo', price=5)
+        translation.activate('fr')
+        self.assertEquals(cat.foo_set.all()[0], obj)
+
+        translation.activate('en')
+        obj2 = Foo.objects.create(name='Another Foo', price=5)
         self.assertEquals(obj2.categories.count(), 0)
 
         self.assertEquals(cat.foo_set.count(), 1)
@@ -1056,22 +1050,27 @@ class ManyToManyTests(LinguoTests):
         self.assertEquals(cat2.foo_set.count(), 0)
 
     def testRemovingM2M(self):
-        obj = Foo.objects.create(name='English Foo', price=10, language='en')
-        obj_fr = obj.create_translation(language='fr', name='French Foo')
+        obj = Foo.objects.create(name='English Foo', price=10)
+        obj.translate(language='fr', name='French Foo')
+        obj.save()
 
-        obj2 = Foo.objects.create(name='Another English Foo', price=12, language='en')
+        obj2 = Foo.objects.create(name='Another English Foo', price=12)
 
         cat = obj.categories.create(name='C1')
         cat2 = obj2.categories.create(name='C2')
-        cat3 = obj_fr.categories.create(name='C3')
+        translation.activate('fr')
+        cat3 = obj.categories.create(name='C3')
+        translation.activate('en')
 
         self.assertEquals(obj.categories.count(), 2)
-        self.assertEquals(obj_fr.categories.count(), 2)
 
-        obj_fr.categories.remove(cat)
+        translation.activate('fr')
+        self.assertEquals(obj.categories.count(), 2)
+        obj.categories.remove(cat)
+        self.assertEquals(obj.categories.count(), 1)
+        self.assertEquals(obj.categories.all()[0], cat3)
 
-        self.assertEquals(obj_fr.categories.count(), 1)
-        self.assertEquals(obj_fr.categories.all()[0], cat3)
+        translation.activate('en')
         self.assertEquals(obj.categories.count(), 1)
         self.assertEquals(obj.categories.all()[0], cat3)
 
@@ -1080,19 +1079,26 @@ class ManyToManyTests(LinguoTests):
         self.assertEquals(cat2.foo_set.all()[0], obj2)
 
     def testClearingM2M(self):
-        obj = Foo.objects.create(name='English Foo', price=10, language='en')
-        obj_fr = obj.create_translation(language='fr', name='French Foo')
-        obj2 = Foo.objects.create(name='Another English Foo', price=12, language='en')
+        obj = Foo.objects.create(name='English Foo', price=10)
+        obj.translate(language='fr', name='French Foo')
+        obj.save()
+        obj2 = Foo.objects.create(name='Another English Foo', price=12)
+        obj2.save()
+
         obj.categories.create(name='C1')
         cat2 = obj2.categories.create(name='C2')
-        obj_fr.categories.create(name='C3')
+
+        translation.activate('fr')
+        obj.categories.create(name='C3')
 
         self.assertEquals(obj.categories.count(), 2)
-        self.assertEquals(obj_fr.categories.count(), 2)
 
-        obj_fr.categories.clear()
+        translation.activate('fr')
+        self.assertEquals(obj.categories.count(), 2)
+        obj.categories.clear()
+        self.assertEquals(obj.categories.count(), 0)
 
-        self.assertEquals(obj_fr.categories.count(), 0)
+        translation.activate('en')
         self.assertEquals(obj.categories.count(), 0)
 
         self.assertEquals(obj2.categories.count(), 1)
@@ -1122,18 +1128,18 @@ class FormTests(LinguoTests):
         self.assertEqual(unicode(form['description'].label), u'Description')
         self.assertEqual(unicode(form['description_fr'].label), u'Description (French)')
         bar = form.save()
-        self.assertEqual(bar._language, 'en')
         self.assertEqual(bar.name, 'Test')
         self.assertEqual(bar.price, 13)
         self.assertEqual(bar.quantity, 3)
         self.assertEqual(bar.description, 'This is a test')
-        bar_fr = bar.get_translation('fr')
-        self.assertEqual(bar_fr._language, 'fr')
-        self.assertEqual(bar_fr.name, 'French Test')
-        self.assertEqual(bar_fr.price, 13)
-        self.assertEqual(bar_fr.quantity, 3)
-        self.assertEqual(bar_fr.description, 'French Description')
 
+        translation.activate('fr')
+        self.assertEqual(bar.name, 'French Test')
+        self.assertEqual(bar.price, 13)
+        self.assertEqual(bar.quantity, 3)
+        self.assertEqual(bar.description, 'French Description')
+
+        translation.activate('en')
         # Create the form with an instance
         data2 = {'name': 'Changed', 'name_fr': 'Changed French', 'price': 43,
             'quantity': 22, 'description': 'Changed description',
@@ -1141,17 +1147,16 @@ class FormTests(LinguoTests):
         }
         form = BarForm(instance=bar, data=data2)
         bar = form.save()
-        self.assertEqual(bar._language, 'en')
         self.assertEqual(bar.name, 'Changed')
         self.assertEqual(bar.price, 43)
         self.assertEqual(bar.quantity, 22)
         self.assertEqual(bar.description, 'Changed description')
-        bar_fr = bar.get_translation('fr')
-        self.assertEqual(bar_fr._language, 'fr')
-        self.assertEqual(bar_fr.name, 'Changed French')
-        self.assertEqual(bar_fr.price, 43)
-        self.assertEqual(bar_fr.quantity, 22)
-        self.assertEqual(bar_fr.description, 'Changed description French')
+
+        translation.activate('fr')
+        self.assertEqual(bar.name, 'Changed French')
+        self.assertEqual(bar.price, 43)
+        self.assertEqual(bar.quantity, 22)
+        self.assertEqual(bar.description, 'Changed description French')
 
     def testModelFormInSecondaryLanguage(self):
         translation.activate('fr')
@@ -1169,20 +1174,19 @@ class FormTests(LinguoTests):
         self.assertEqual(unicode(form['name_fr'].label), u'Neom (Français)')
         self.assertEqual(unicode(form['description'].label), u'Description')  # This does not get translated because Django generates the verbose_name as a string
         self.assertEqual(unicode(form['description_fr'].label), u'Déscriptione (Français)')
-        bar_fr = form.save()
+        bar = form.save()
 
-        bar = bar_fr.get_translation('en')
-        self.assertEqual(bar._language, 'en')
+        translation.activate('en')
         self.assertEqual(bar.name, '')
         self.assertEqual(bar.price, 13)
         self.assertEqual(bar.quantity, 3)
         self.assertEqual(bar.description, '')
 
-        self.assertEqual(bar_fr._language, 'fr')
-        self.assertEqual(bar_fr.name, 'French Test')
-        self.assertEqual(bar_fr.price, 13)
-        self.assertEqual(bar_fr.quantity, 3)
-        self.assertEqual(bar_fr.description, 'French Description')
+        translation.activate('fr')
+        self.assertEqual(bar.name, 'French Test')
+        self.assertEqual(bar.price, 13)
+        self.assertEqual(bar.quantity, 3)
+        self.assertEqual(bar.description, 'French Description')
 
     def testModelFormWithFieldsSpecified(self):
         form = BarFormWithFieldsSpecified()
@@ -1197,35 +1201,34 @@ class FormTests(LinguoTests):
         }
         form = BarFormWithFieldsSpecified(data=data)
         bar = form.save()
-        self.assertEqual(bar._language, 'en')
         self.assertEqual(bar.name, 'Test')
         self.assertEqual(bar.price, 13)
         self.assertEqual(bar.quantity, 3)
         self.assertEqual(bar.description, 'This is a test')
-        bar_fr = bar.get_translation('fr')
-        self.assertEqual(bar_fr._language, 'fr')
-        self.assertEqual(bar_fr.name, '')
-        self.assertEqual(bar_fr.price, 13)
-        self.assertEqual(bar_fr.quantity, 3)
-        self.assertEqual(bar_fr.description, '')
 
+        translation.activate('fr')
+        self.assertEqual(bar.name, '')
+        self.assertEqual(bar.price, 13)
+        self.assertEqual(bar.quantity, 3)
+        self.assertEqual(bar.description, '')
+
+        translation.activate('en')
         # Create the form with an instance
         data2 = {'name': 'Changed', 'price': 43,
             'quantity': 22, 'description': 'Changed description',
         }
         form = BarFormWithFieldsSpecified(instance=bar, data=data2)
         bar = form.save()
-        self.assertEqual(bar._language, 'en')
         self.assertEqual(bar.name, 'Changed')
         self.assertEqual(bar.price, 43)
         self.assertEqual(bar.quantity, 22)
         self.assertEqual(bar.description, 'Changed description')
-        bar_fr = bar.get_translation('fr')
-        self.assertEqual(bar_fr._language, 'fr')
-        self.assertEqual(bar_fr.name, '')
-        self.assertEqual(bar_fr.price, 43)
-        self.assertEqual(bar_fr.quantity, 22)
-        self.assertEqual(bar_fr.description, '')
+
+        translation.activate('fr')
+        self.assertEqual(bar.name, '')
+        self.assertEqual(bar.price, 43)
+        self.assertEqual(bar.quantity, 22)
+        self.assertEqual(bar.description, '')
 
     def testModelFormWithFieldsSpecifiedInSecondaryLanguage(self):
         translation.activate('fr')
@@ -1240,36 +1243,35 @@ class FormTests(LinguoTests):
             'quantity': 3, 'description': 'This is a French test',
         }
         form = BarFormWithFieldsSpecified(data=data)
-        bar_fr = form.save()
-        self.assertEqual(bar_fr._language, 'fr')
-        self.assertEqual(bar_fr.name, 'Test French')
-        self.assertEqual(bar_fr.price, 13)
-        self.assertEqual(bar_fr.quantity, 3)
-        self.assertEqual(bar_fr.description, 'This is a French test')
-        bar_en = bar_fr.get_translation('en')
-        self.assertEqual(bar_en._language, 'en')
-        self.assertEqual(bar_en.name, '')
-        self.assertEqual(bar_en.price, 13)
-        self.assertEqual(bar_en.quantity, 3)
-        self.assertEqual(bar_en.description, '')
+        bar = form.save()
+        self.assertEqual(bar.name, 'Test French')
+        self.assertEqual(bar.price, 13)
+        self.assertEqual(bar.quantity, 3)
+        self.assertEqual(bar.description, 'This is a French test')
 
+        translation.activate('en')
+        self.assertEqual(bar.name, '')
+        self.assertEqual(bar.price, 13)
+        self.assertEqual(bar.quantity, 3)
+        self.assertEqual(bar.description, '')
+
+        translation.activate('fr')
         # Create the form with an instance
         data2 = {'name': 'Changed', 'price': 43,
             'quantity': 22, 'description': 'Changed description',
         }
-        form = BarFormWithFieldsSpecified(instance=bar_fr, data=data2)
-        bar_fr = form.save()
-        self.assertEqual(bar_fr._language, 'fr')
-        self.assertEqual(bar_fr.name, 'Changed')
-        self.assertEqual(bar_fr.price, 43)
-        self.assertEqual(bar_fr.quantity, 22)
-        self.assertEqual(bar_fr.description, 'Changed description')
-        bar_en = bar_fr.get_translation('en')
-        self.assertEqual(bar_en._language, 'en')
-        self.assertEqual(bar_en.name, '')
-        self.assertEqual(bar_en.price, 43)
-        self.assertEqual(bar_en.quantity, 22)
-        self.assertEqual(bar_en.description, '')
+        form = BarFormWithFieldsSpecified(instance=bar, data=data2)
+        bar = form.save()
+        self.assertEqual(bar.name, 'Changed')
+        self.assertEqual(bar.price, 43)
+        self.assertEqual(bar.quantity, 22)
+        self.assertEqual(bar.description, 'Changed description')
+
+        translation.activate('en')
+        self.assertEqual(bar.name, '')
+        self.assertEqual(bar.price, 43)
+        self.assertEqual(bar.quantity, 22)
+        self.assertEqual(bar.description, '')
 
 
 if django.VERSION[:3] >= (1, 1, 2):  # The AdminTests only pass with django >= 1.1.2 (but compatibility is django >= 1.0.3)
@@ -1289,10 +1291,12 @@ if django.VERSION[:3] >= (1, 1, 2):  # The AdminTests only pass with django >= 1
         def testAdminChangelistFeatures(self):
             # Create some Bar objects
             b1 = Bar.objects.create(name="apple", price=2, description="hello world", quantity=1)
-            b1.create_translation(name="pomme", description="allo monde", language="fr")
+            b1.translate(name="pomme", description="allo monde", language="fr")
+            b1.save()
 
             b2 = Bar.objects.create(name="computer", price=3, description="oh my god", quantity=3)
-            b2.create_translation(name="ordinator", description="oh mon dieu", language="fr")
+            b2.translate(name="ordinator", description="oh mon dieu", language="fr")
+            b2.save()
 
             url = reverse('admin:tests_bar_changelist')
             response = self.client.get(url)
@@ -1350,10 +1354,12 @@ class TestsForUnupportedFeatures(object):  # LinguoTests):
 
         # Create some Bar objects
         b1 = Bar.objects.create(name="apple", price=2, description="hello world", quantity=1)
-        b1.create_translation(name="pomme", description="allo monde", language="fr")
+        b1.translate(name="pomme", description="allo monde", language="fr")
+        b1.save()
 
         b2 = Bar.objects.create(name="computer", price=3, description="oh my god", quantity=3)
-        b2.create_translation(name="ordinator", description="oh mon dieu", language="fr")
+        b2.translate(name="ordinator", description="oh mon dieu", language="fr")
+        b2.save()
 
         translation.activate('fr')
         url = reverse('admin:tests_bar_changelist')
