@@ -3,11 +3,10 @@ import copy
 from django.db import models
 from django.db.models.base import ModelBase
 from django.conf import settings
-from django.core.exceptions import ValidationError
 from django.utils.translation import ugettext_lazy as _
 from django.utils.translation import get_language
 
-from linguo.exceptions import InvalidActionError, MultilingualFieldError
+from linguo.exceptions import MultilingualFieldError
 from linguo.managers import MultilingualManager
 from linguo.utils import get_real_field_name
 
@@ -103,7 +102,8 @@ class MultilingualModelBase(ModelBase):
     def generate_field_getter(cls, field):
         # Property that masks the getter of a translatable field
         def getter(self_reference):
-            attrname = '%s_%s' % (field, self_reference._language)
+            lang = self_reference._force_language or get_language().split('-')[0]
+            attrname = '%s_%s' % (field, lang)
             return getattr(self_reference, attrname)
         return getter
 
@@ -111,7 +111,8 @@ class MultilingualModelBase(ModelBase):
     def generate_field_setter(cls, field):
         # Property that masks a setter of the translatable field
         def setter(self_reference, value):
-            attrname = '%s_%s' % (field, self_reference._language)
+            lang = self_reference._force_language or get_language().split('-')[0]
+            attrname = '%s_%s' % (field, lang)
             setattr(self_reference, attrname, value)
         return setter
 
@@ -165,59 +166,36 @@ class MultilingualModel(models.Model):
         abstract = True
 
     def __init__(self, *args, **kwargs):
-        # Set the language for this instance
-        if 'language' in kwargs:
-            lang_codes = [lang[0] for lang in settings.LANGUAGES]
-            if kwargs['language'] not in lang_codes:
-                raise ValidationError(u"'%(language)s' is not a valid language." % {'language': kwargs['language']})
+        self._force_language = None
 
-            self._language = kwargs['language']
-            if 'language' not in self._meta.get_all_field_names():
-                del kwargs['language']
-        else:
-            self._language = get_language().split('-')[0]
         # Rewrite any keyword arguments for translatable fields
+        language = get_language().split('-')[0]
         for field in self._meta.translatable_fields:
             if field in kwargs.keys():
-                attrname = get_real_field_name(field, self._language)
+                attrname = get_real_field_name(field, language)
                 if attrname != field:
                     kwargs[attrname] = kwargs[field]
                     del kwargs[field]
 
-        # We have to switch to the primary language before initializing
-        # or else the wrong value will be set for the non-primary language if activated
-        language = self._language
-        self._language = settings.LANGUAGES[0][0]
+        # We have to force the primary language before initializing or else
+        # our "proxy" property will prevent the primary language values from being returned.
+        self._force_language = settings.LANGUAGES[0][0]
         super(MultilingualModel, self).__init__(*args, **kwargs)
-        self._language = language
+        self._force_language = None
 
     def save(self, *args, **kwargs):
-        # We have to switch to the primary language before saving
-        # or else our masking property will return the wrong value for the primary language field
-        language = self._language
-        self._language = settings.LANGUAGES[0][0]
+        # We have to force the primary language before initializing or else
+        # our "proxy" property will prevent the primary language values from being returned.
+        self._force_language = settings.LANGUAGES[0][0]
         super(MultilingualModel, self).save(*args, **kwargs)
         # Now we can switch back
-        self._language = language
+        self._force_language = None
 
-    def get_translation(self, language):
-        obj = self._default_manager.get(pk=self.pk)
-        obj._language = language
-        return obj
-
-    def create_translation(self, language, **kwargs):
-        if not self.pk:
-            raise InvalidActionError(
-                'Cannot create a translation of an unsaved object.'
-            )
-
-        trans_obj = self.get_translation(language)
-
+    def translate(self, language, **kwargs):
+        # Temporarily force this objects language
+        self._force_language = language
+        # Set the values
         for key, val in kwargs.iteritems():
-            setattr(trans_obj, key, val)
-
-        trans_obj.save()
-        return trans_obj
-
-    def translate(self, language):
-        self._language = language
+            setattr(self, key, val)  # Set values on the object
+        # Now switch back
+        self._force_language = None
