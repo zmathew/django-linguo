@@ -1,6 +1,8 @@
 Linguo
 ======
 
+**NOTE:** Version 1.3.0 changes the way translations are created/retrieved to make it more in line with Django's i18n framework (and ugettext). Please re-read the usage instructions below.
+
 
 Overview
 --------
@@ -141,7 +143,7 @@ Model Forms for Multilingual models
 
 Model Forms work transparently in the sense that it automatically saves the form data to the current active language.
 
-But by default, a Model Form for a Multlingual model will contains **all** the fields for **every language** (eg. ``name``, ``name_fr``, etc.). Typically this is not what you want. You just need to specify the ``fields`` attribute so that it doesn't generate separate fields for each language.
+But by default, a Model Form for a Multlingual model will contain **all** the fields for **every language** (eg. ``name``, ``name_fr``, etc.). Typically this is not what you want. You just need to specify the ``fields`` attribute so that it doesn't generate separate fields for each language.
 ::
 
     class ProductForm(forms.ModelForm):
