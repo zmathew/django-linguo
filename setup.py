@@ -11,11 +11,11 @@ setup(
     description=linguo.__doc__,
     long_description=open('README.rst').read(),
     classifiers=[
-        'Development Status :: 5 - Production/Stable',
+        'Framework :: Django',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: BSD License',
-        'Topic :: Internet :: WWW/HTTP :: Indexing/Search',
-        'Framework :: Django',
+        'Operating System :: OS Independent',
+        'Topic :: Software Development'
     ],
     author='Zach Mathew',
     url='http://github.com/zmathew/django-linguo',
