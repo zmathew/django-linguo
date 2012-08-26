@@ -197,8 +197,7 @@ Installation
 1. Add ``linguo`` to your ``INSTALLED_APPS`` setting.
 1. Ensure the ``LANGUAGES`` setting contains all the languages for your site.
 
-
-**It is highly recommended that you use `south<http://south.aeracode.org/>`_ ** so that changes to your model can be migrated using automatic schema migrations. This is because linguo creates new fields on your model that are transparent to you. See the section below on "Behind The Scenes" for more details.
+It is highly recommended that you use `south <http://south.aeracode.org/>`_ so that changes to your model can be migrated using automatic schema migrations. This is because linguo creates new fields on your model that are transparent to you. See the section below on "Behind The Scenes" for more details.
 
 
 Adding new languages
@@ -206,15 +205,14 @@ Adding new languages
 
 * Append the new language to the ``LANGUAGES`` setting.
     - You should avoid changing the primary language (ie. the first language in the list). If you do that, you will have to migrate the data in that column.
-
 * If using ``south``, perform an automatic schemamigration:
-::
-    ./manage.py schemamigration <app-name> --auto
+    ::
 
+        ./manage.py schemamigration <app-name> --auto
 * If NOT using ``south``, examine the schema change by running:
-::
+    ::
 
-    ./manage.py sql <app-name>
+        ./manage.py sql <app-name>
 
 You'll have to manually write the SQL statement to alter the table .
 
