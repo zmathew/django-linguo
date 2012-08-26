@@ -245,16 +245,6 @@ For example, if the current language is "fr", and we run the following query ...
     Product.objects.filter(name_fr="test")
 
 
-
-Contributors
-------------
-
-This app was developed by [Zach Mathew](https://github.com/zmathew/).
-
-See the AUTHORS file for full list of contributors.
-
-
-
 License
 -------
 
