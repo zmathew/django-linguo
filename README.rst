@@ -194,8 +194,8 @@ When saving the form, it will automatically save the form data to the fields in 
 Installation
 ------------
 
-1. Add ``linguo`` to your ``INSTALLED_APPS`` setting.
-1. Ensure the ``LANGUAGES`` setting contains all the languages for your site.
+#. Add ``linguo`` to your ``INSTALLED_APPS`` setting.
+#. Ensure the ``LANGUAGES`` setting contains all the languages for your site.
 
 It is highly recommended that you use `south <http://south.aeracode.org/>`_ so that changes to your model can be migrated using automatic schema migrations. This is because linguo creates new fields on your model that are transparent to you. See the section below on "Behind The Scenes" for more details.
 
