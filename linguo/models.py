@@ -15,13 +15,13 @@ class MultilingualModelBase(ModelBase):
 
     def __new__(cls, name, bases, attrs):
         local_trans_fields, inherited_trans_fields = \
-            MultilingualModelBase.get_trans_fields(name, bases, attrs)
+            cls.get_trans_fields(name, bases, attrs)
 
         if ('Meta' in attrs) and hasattr(attrs['Meta'], 'translate'):
             delattr(attrs['Meta'], 'translate')
 
-        attrs = MultilingualModelBase.rewrite_trans_fields(local_trans_fields, attrs)
-        attrs = MultilingualModelBase.rewrite_unique_together(local_trans_fields, attrs)
+        attrs = cls.rewrite_trans_fields(local_trans_fields, attrs)
+        attrs = cls.rewrite_unique_together(local_trans_fields, attrs)
 
         new_obj = super(MultilingualModelBase, cls).__new__(cls, name, bases, attrs)
         new_obj._meta.translatable_fields = inherited_trans_fields + local_trans_fields
@@ -39,8 +39,8 @@ class MultilingualModelBase(ModelBase):
                 primary_lang_field_name = '%s_%s' % (field_name, settings.LANGUAGES[0][0])
                 setattr(new_obj, primary_lang_field_name, new_obj.__dict__[field_name])
 
-            getter = MultilingualModelBase.generate_field_getter(field_name)
-            setter = MultilingualModelBase.generate_field_setter(field_name)
+            getter = cls.generate_field_getter(field_name)
+            setter = cls.generate_field_setter(field_name)
             setattr(new_obj, field_name, property(getter, setter))
 
         return new_obj
