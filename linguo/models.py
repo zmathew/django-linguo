@@ -199,3 +199,15 @@ class MultilingualModel(models.Model):
             setattr(self, key, val)  # Set values on the object
         # Now switch back
         self._force_language = None
+
+    def get_translations(self, field_name):
+        """ Returns a list of translations for `field name` ordered by settings.LANGUAGES """
+        translations = []
+
+        for lang in settings.LANGUAGES:
+            attrname = '%s_%s' % (field_name, lang[0])
+            translated = getattr(self, attrname)
+            if translated:
+                translations.append(translated)
+
+        return translations

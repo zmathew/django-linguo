@@ -62,6 +62,15 @@ class Tests(LinguoTests):
         self.assertEquals(obj.name, 'FooFr')
         self.assertEquals(Foo.objects.count(), 1)
 
+    def testGetTranslations(self):
+        obj = Foo.objects.create(name='Foo', price=10)
+        obj.translate(name='FooFr', language='fr')
+        obj.save()
+
+        obj = Foo.objects.get(id=obj.id)
+
+        self.assertEqual(obj.get_translations('name'), ['Foo', 'FooFr'])
+
     def testDelayedCreation(self):
         obj = Foo()
         obj.name = 'Foo'

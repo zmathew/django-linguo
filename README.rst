@@ -92,6 +92,13 @@ Then, you can do this:
     # You don't have to specify price, because it is not a translatable field
 
 
+**Get all translations** of a field.
+::
+
+    product.get_translations('name')
+    -> ['English Name', 'French Name']
+
+
 If you **switch languages**, it will automatically retrieve the corresponding translated values.
 ::
 
