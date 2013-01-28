@@ -96,7 +96,7 @@ Then, you can do this:
 ::
 
     product.get_translations('name')
-    -> ['English Name', 'French Name']
+    -> {'en': 'English Name', 'fr': 'French Name'}
 
 
 If you **switch languages**, it will automatically retrieve the corresponding translated values.
