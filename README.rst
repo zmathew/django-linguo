@@ -1,18 +1,25 @@
 Linguo
 ======
 
-Linguo aims to make model translation easy and is designed to let you use the built-in Django features (Query API, Model Forms, Admin, etc) as intended. It integrates relatively easily with your existing code and performs the translation retrieval logic transparently (similar to ugettext).
+Linguo aims to make model translation easy and is designed to let you use the
+built-in Django features (Query API, Model Forms, Admin, etc) as intended. It
+integrates relatively easily with your existing code and performs the
+translation retrieval logic transparently (similar to ugettext).
 
-It does this by creating additional columns for each language and using accessors to make it transparent to you.
+It does this by creating additional columns for each language and using
+accessors to make it transparent to you.
 
 
 
 Features
 --------
 
-* Automatically references the correct translation based on the current active language.
-* Lets you use the Django ORM just as before (including support for filtering and ordering on translatable fields).
-* Support ModelForms by automatically retrieving/saving values based on the active language.
+* Automatically references the correct translation based on the current active
+  language.
+* Lets you use the Django ORM just as before (including support for filtering
+  and ordering on translatable fields).
+* Support ModelForms by automatically retrieving/saving values based on the
+  active language.
 * Supports Django versions 1.2 to 1.4 (1.5 seems to work, but not officially tested)
 * Comprehensive test coverage
 
@@ -40,7 +47,8 @@ Subclass ``MultilingualModel`` and define the ``translate`` property:
             # name and description are translatable fields
             translate = ('name', 'description')
 
-``MultilingualManager`` allows you to transparently perform filtering and ordering on translatable fields (more on this below).
+``MultilingualManager`` allows you to transparently perform filtering and
+ordering on translatable fields (more on this below).
 
 
 Assuming your ``LANGUAGES`` settings looks like this ...
@@ -77,7 +85,8 @@ Then, you can do this:
     # You don't have to specify price, because it is not a translatable field
 
 
-If you **switch languages**, it will automatically retrieve the corresponding translated values.
+If you **switch languages**, it will automatically retrieve the corresponding
+translated values.
 ::
 
     translation.activate('fr')
@@ -89,7 +98,8 @@ If you **switch languages**, it will automatically retrieve the corresponding tr
     -> 'French description'
 
 
-If you **modify translatable fields**, it will automatically assign it to current active language.
+If you **modify translatable fields**, it will automatically assign it to
+current active language.
 ::
 
     translation.activate('fr')
@@ -103,7 +113,8 @@ If you **modify translatable fields**, it will automatically assign it to curren
     -> 'English Name'
 
 
-Non-translated fields will have the same value regardless of the language we are operating in.
+Non-translated fields will have the same value regardless of the language
+we are operating in.
 ::
 
     translation.activate('en')
@@ -118,7 +129,9 @@ Non-translated fields will have the same value regardless of the language we are
 Querying the database
 '''''''''''''''''''''
 
-**Filtering and ordering** works as you would expect it to. It will filter/order in the language you are operating in. You need to have ``MultilingualManager`` on the model in order for this feature to work.
+**Filtering and ordering** works as you would expect it to. It will
+filter/order in the language you are operating in. You need to have
+``MultilingualManager`` on the model in order for this feature to work.
 ::
 
     translation.activate('fr')
@@ -128,15 +141,19 @@ Querying the database
 Model Forms for Multilingual models
 '''''''''''''''''''''''''''''''''''
 
-Model Forms work transparently in the sense that it automatically saves the form data to the current active language. However, you **must specify the ``fields``** attribute on the form. Otherwise you will end up with fields for every language (eg. ``name``, ``name_fr``, etc.) which is probably not what you want (if you do want this, see section below on 'Admin Model Forms').
-::
+Model Forms work transparently in the sense that it automatically saves the form
+data to the current active language. However, you **must specify the
+``fields``** attribute on the form. Otherwise you will end up with fields for
+every language (eg. ``name``, ``name_fr``, etc.) which is probably not what you
+want (if you do want this, see section below on 'Admin Model Forms'). ::
 
     class ProductForm(forms.ModelForm):
         class Meta:
             fields = ('name', 'description', 'price',)
             model = Product
 
-When saving the form, it will automatically save the form data to the fields in the **current active language**.
+When saving the form, it will automatically save the form data to the fields in
+the **current active language**.
 ::
 
     translation.activate('fr') # Activate French
@@ -174,14 +191,18 @@ When saving the form, it will automatically save the form data to the fields in 
 
 Admin Model Forms (editing multiple languages at the same time)
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-In the admin, you most probably want to include fields for each language (eg. ``name``, ``name_fr``, etc.). In this case you must subclass ``MultilingualModelForm`` and use it as the admin form.
+In the admin, you most probably want to include fields for each language (eg.
+``name``, ``name_fr``, etc.). In this case you must subclass
+``MultilingualModelForm`` and use it as the admin form.
 ::
     # admin.py
 
     TODO
 
 
-``MultilingualModelForm`` can be used anytime you want to allow editing multiple language simultaneously (not just in the admin). Basically, it just **disables the automatic routing** to the current active language.
+``MultilingualModelForm can be used anytime you want to allow editing multiple
+``language simultaneously (not just in the admin). Basically, it just **disables
+``the automatic routing** to the current active language.
 
 
 
@@ -191,7 +212,10 @@ Installation
 #. Add ``linguo`` to your ``INSTALLED_APPS`` setting.
 #. Ensure the ``LANGUAGES`` setting contains all the languages for your site.
 
-It is highly recommended that you use `south <http://south.aeracode.org/>`_ so that changes to your model can be migrated using automatic schema migrations. This is because linguo creates new fields on your model that are transparent to you. See the section below on "Behind The Scenes" for more details.
+It is highly recommended that you use `south <http://south.aeracode.org/>`_ so
+that changes to your model can be migrated using automatic schema migrations.
+This is because linguo creates new fields on your model that are transparent to
+you. See the section below on "Behind The Scenes" for more details.
 
 
 Adding new languages
@@ -220,7 +244,8 @@ Running the tests
 
 Behind The Scenes (How It Works)
 --------------------------------
-For each field marked as translatable, ``linguo`` will create additional database fields for each additional language.
+For each field marked as translatable, ``linguo`` will create additional
+database fields for each additional language.
 
 For example, if you mark the following field as translatable ...
 ::
@@ -237,8 +262,9 @@ For example, if you mark the following field as translatable ...
     name_fr = models.CharField(_('name (French)'), max_length=255) # This is for "fr"
     name_de = models.CharField(_('name (German)'), max_length=255) # This is for "de"
 
-On the instantiated model, "name" becomes a ``property`` that appropriately gets/sets the values
-for the corresponding field that matches the language we are working with.
+On the instantiated model, "name" becomes a ``property`` that appropriately
+gets/sets the values for the corresponding field that matches the language we
+are working with.
 
 For example, if the current language is "fr" ...
 ::
@@ -266,4 +292,5 @@ License
 -------
 
 This app is licensed under the BSD license. See the LICENSE file for details.
-Basically, feel free to do what you want with this code, but I'm not liable if your computer blows up.
+Basically, feel free to do what you want with this code, but I'm not liable if
+your computer blows up.
