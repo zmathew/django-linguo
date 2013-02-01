@@ -4,7 +4,7 @@ from django.conf import settings
 from linguo.utils import get_normalized_language
 
 
-class MultilingualModeForm(forms.ModelForm):
+class MultilingualModelForm(forms.ModelForm):
     def __init__(self, instance=None, **kwargs):
         # We force the language to the primary, temporarily disabling the
         # routing based on current active language.
@@ -17,7 +17,7 @@ class MultilingualModeForm(forms.ModelForm):
         else:
             old_force_language = None
 
-        super(MultilingualModeForm, self).__init__(instance=instance, **kwargs)
+        super(MultilingualModelForm, self).__init__(instance=instance, **kwargs)
         self.instance._force_language = old_force_language
 
     def _post_clean(self):
@@ -26,5 +26,5 @@ class MultilingualModeForm(forms.ModelForm):
         # This allows all fields to be assigned to the corresponding language
         old_force_language = self.instance._force_language
         self.instance._force_language = get_normalized_language(settings.LANGUAGES[0][0])
-        super(MultilingualModeForm, self)._post_clean()
+        super(MultilingualModelForm, self)._post_clean()
         self.instance._force_language = old_force_language
