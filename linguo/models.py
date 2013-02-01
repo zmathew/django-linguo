@@ -4,11 +4,10 @@ from django.db import models
 from django.db.models.base import ModelBase
 from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
-from django.utils.translation import get_language
 
 from linguo.exceptions import MultilingualFieldError
 from linguo.managers import MultilingualManager
-from linguo.utils import get_real_field_name
+from linguo.utils import get_real_field_name, get_normalized_language, get_current_language
 
 
 class MultilingualModelBase(ModelBase):
@@ -36,7 +35,9 @@ class MultilingualModelBase(ModelBase):
 
             # Some fields add a descriptor (ie. FileField), we want to keep that on the model
             if field_name in new_obj.__dict__:
-                primary_lang_field_name = '%s_%s' % (field_name, settings.LANGUAGES[0][0])
+                primary_lang_field_name = '%s_%s' % (
+                    field_name, get_normalized_language(settings.LANGUAGES[0][0])
+                )
                 setattr(new_obj, primary_lang_field_name, new_obj.__dict__[field_name])
 
             getter = cls.generate_field_getter(field_name)
@@ -102,7 +103,7 @@ class MultilingualModelBase(ModelBase):
     def generate_field_getter(cls, field):
         # Property that masks the getter of a translatable field
         def getter(self_reference):
-            lang = self_reference._force_language or get_language().split('-')[0]
+            lang = self_reference._force_language or get_current_language()
             attrname = '%s_%s' % (field, lang)
             return getattr(self_reference, attrname)
         return getter
@@ -111,7 +112,7 @@ class MultilingualModelBase(ModelBase):
     def generate_field_setter(cls, field):
         # Property that masks a setter of the translatable field
         def setter(self_reference, value):
-            lang = self_reference._force_language or get_language().split('-')[0]
+            lang = self_reference._force_language or get_current_language()
             attrname = '%s_%s' % (field, lang)
             setattr(self_reference, attrname, value)
         return setter
@@ -144,11 +145,11 @@ class MultilingualModelBase(ModelBase):
         # Now perform the re-writing
         for constraint in constraints_to_rewrite:
             for lang in settings.LANGUAGES:
-                language = lang[0]
+                lang_code = lang[0]
                 new_constraint = []
                 for field in constraint:
                     if field in local_trans_fields:
-                        field = get_real_field_name(field, language)
+                        field = get_real_field_name(field, lang_code)
                     new_constraint.append(field)
 
                 new_ut.append(tuple(new_constraint))
@@ -169,7 +170,7 @@ class MultilingualModel(models.Model):
         self._force_language = None
 
         # Rewrite any keyword arguments for translatable fields
-        language = get_language().split('-')[0]
+        language = get_current_language()
         for field in self._meta.translatable_fields:
             if field in kwargs.keys():
                 attrname = get_real_field_name(field, language)
@@ -179,7 +180,7 @@ class MultilingualModel(models.Model):
 
         # We have to force the primary language before initializing or else
         # our "proxy" property will prevent the primary language values from being returned.
-        self._force_language = settings.LANGUAGES[0][0]
+        self._force_language = get_normalized_language(settings.LANGUAGES[0][0])
         super(MultilingualModel, self).__init__(*args, **kwargs)
         self._force_language = None
 
@@ -187,7 +188,7 @@ class MultilingualModel(models.Model):
         # We have to force the primary language before saving or else
         # our "proxy" property will prevent the primary language values from being returned.
         old_forced_language = self._force_language
-        self._force_language = settings.LANGUAGES[0][0]
+        self._force_language = get_normalized_language(settings.LANGUAGES[0][0])
         super(MultilingualModel, self).save(*args, **kwargs)
         # Now we can switch back
         self._force_language = old_forced_language
