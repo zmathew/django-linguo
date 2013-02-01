@@ -195,14 +195,22 @@ In the admin, you most probably want to include fields for each language (eg.
 ``name``, ``name_fr``, etc.). In this case you must subclass
 ``MultilingualModelForm`` and use it as the admin form.
 ::
-    # admin.py
 
-    TODO
+    # Form definition
+    from linguo.forms import MultilingualModelForm
+
+    class ProductAdminForm(MultilingualModelForm):
+        class Meta:
+            model = Product
+
+    # Admin definition
+    class ProductAdmin(admin.ModelAdmin):
+        form = ProductAdminForm
 
 
-``MultilingualModelForm can be used anytime you want to allow editing multiple
-``language simultaneously (not just in the admin). Basically, it just **disables
-``the automatic routing** to the current active language.
+``MultilingualModelForm`` can be used anytime you want to allow editing multiple
+language simultaneously (not just in the admin). Basically, it just **disables
+the automatic routing** to the current active language.
 
 
 
