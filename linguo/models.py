@@ -141,7 +141,7 @@ class MultilingualModelBase(ModelBase):
             else:
                 new_ut.append(constraint)
 
-        # Now perform the rewritting
+        # Now perform the re-writing
         for constraint in constraints_to_rewrite:
             for lang in settings.LANGUAGES:
                 language = lang[0]
@@ -184,18 +184,20 @@ class MultilingualModel(models.Model):
         self._force_language = None
 
     def save(self, *args, **kwargs):
-        # We have to force the primary language before initializing or else
+        # We have to force the primary language before saving or else
         # our "proxy" property will prevent the primary language values from being returned.
+        old_forced_language = self._force_language
         self._force_language = settings.LANGUAGES[0][0]
         super(MultilingualModel, self).save(*args, **kwargs)
         # Now we can switch back
-        self._force_language = None
+        self._force_language = old_forced_language
 
     def translate(self, language, **kwargs):
         # Temporarily force this objects language
+        old_forced_language = self._force_language
         self._force_language = language
         # Set the values
         for key, val in kwargs.iteritems():
             setattr(self, key, val)  # Set values on the object
         # Now switch back
-        self._force_language = None
+        self._force_language = old_forced_language
