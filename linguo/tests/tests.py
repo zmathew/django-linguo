@@ -1319,6 +1319,34 @@ if django.VERSION[:3] >= (1, 1, 2):  # The AdminTests only pass with django >= 1
             self.assertContains(response, 'hello world')
             self.assertNotContains(response, 'oh my god')
 
+        def testAdminAddSubmission(self):
+            url = reverse('admin:tests_bar_add')
+            response = self.client.post(url, data={
+                'name': 'Bar',
+                'name_fr': 'French Bar',
+                'price': 12,
+                'quantity': 5,
+                'description': 'English description.',
+                'description_fr': 'French description.'
+            })
+            self.assertEqual(response.status_code, 302)
+
+        def testAdminChangeSubmission(self):
+            obj = Bar(name='Bar', price=12, quantity=5, description='Hello')
+            obj.translate(language='fr', name='French Bar', description='French Hello')
+            obj.save()
+
+            url = reverse('admin:tests_bar_change', args=[obj.id])
+            response = self.client.post(url, data={
+                'name': 'Bar2',
+                'name_fr': 'French Bar2',
+                'price': 222,
+                'quantity': 55,
+                'description': 'Hello2',
+                'description_fr': 'French Hello2'
+            })
+            self.assertEqual(response.status_code, 302)
+
 
 class TestMultilingualForm(LinguoTests):
     def testCreatesModelInstanceWithAllFieldValues(self):

@@ -5,7 +5,7 @@ from linguo.utils import get_normalized_language
 
 
 class MultilingualModelForm(forms.ModelForm):
-    def __init__(self, instance=None, **kwargs):
+    def __init__(self, data=None, files=None, instance=None, **kwargs):
         # We force the language to the primary, temporarily disabling the
         # routing based on current active language.
         # This allows all field values to be extracted from the model in super's init()
@@ -17,7 +17,9 @@ class MultilingualModelForm(forms.ModelForm):
         else:
             old_force_language = None
 
-        super(MultilingualModelForm, self).__init__(instance=instance, **kwargs)
+        super(MultilingualModelForm, self).__init__(
+            data=data, files=files, instance=instance, **kwargs
+        )
         self.instance._force_language = old_force_language
 
     def _post_clean(self):
