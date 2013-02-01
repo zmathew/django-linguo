@@ -1,36 +1,21 @@
 Linguo
 ======
 
-**NOTE:** Version 1.3.0 changes the way translations are created/retrieved to make it more in line with Django's i18n framework (and ugettext). Please re-read the usage instructions below.
-
-
-Overview
---------
-Linguo is a Django application that provides the ability to have multilingual models (ie. translatable fields on models). This means that you can have fields on a model with different values for different languages (similar to ugettext, but for models).
+Linguo aims to make model translation easy and is designed to let you use the built-in Django features (Query API, Model Forms, Admin, etc) as intended. It integrates relatively easily with your existing code and performs the translation retrieval logic transparently (similar to ugettext).
 
 It does this by creating additional columns for each language and using accessors to make it transparent to you.
 
-For example:
-::
-
-    product.name
-    -> 'Foo'
-
-    # If you switch languages, you get the translated value for the field:
-    translation.activate('fr')
-
-    product.name
-    -> 'French Foo'
 
 
 Features
 --------
 
-* Automatically retrieves translated values in the current active language.
-* Supports filtering and ordering on translatable fields.
-* Can support ModelForms for translatable models that automatically save values to the active language.
-* Supports Django versions 1.2 to 1.4
+* Automatically references the correct translation based on the current active language.
+* Lets you use the Django ORM just as before (including support for filtering and ordering on translatable fields).
+* Support ModelForms by automatically retrieving/saving values based on the active language.
+* Supports Django versions 1.2 to 1.4 (1.5 seems to work, but not officially tested)
 * Comprehensive test coverage
+
 
 
 Usage
@@ -133,7 +118,7 @@ Non-translated fields will have the same value regardless of the language we are
 Querying the database
 '''''''''''''''''''''
 
-**Filtering and ordering** works as you would expect it to. It will filter/order in the language you are operating in. You need to use ``MultilingualManager`` on the model in order for this feature to work.
+**Filtering and ordering** works as you would expect it to. It will filter/order in the language you are operating in. You need to have ``MultilingualManager`` on the model in order for this feature to work.
 ::
 
     translation.activate('fr')
@@ -143,18 +128,13 @@ Querying the database
 Model Forms for Multilingual models
 '''''''''''''''''''''''''''''''''''
 
-Model Forms work transparently in the sense that it automatically saves the form data to the current active language.
-
-But by default, a Model Form for a Multlingual model will contain **all** the fields for **every language** (eg. ``name``, ``name_fr``, etc.). Typically this is not what you want. You just need to specify the ``fields`` attribute so that it doesn't generate separate fields for each language.
+Model Forms work transparently in the sense that it automatically saves the form data to the current active language. However, you **must specify the ``fields``** attribute on the form. Otherwise you will end up with fields for every language (eg. ``name``, ``name_fr``, etc.) which is probably not what you want (if you do want this, see section below on 'Admin Model Forms').
 ::
 
     class ProductForm(forms.ModelForm):
         class Meta:
             fields = ('name', 'description', 'price',)
             model = Product
-
-
-The template output and field names for the form will be the same regardless of the language you are operating in.
 
 When saving the form, it will automatically save the form data to the fields in the **current active language**.
 ::
@@ -188,7 +168,21 @@ When saving the form, it will automatically save the form data to the fields in 
 
     new_product.price
     -> 37
-     # Of course, non-translatable fields will have a consistent value
+    # Of course, non-translatable fields will have a consistent value
+
+
+
+Admin Model Forms (editing multiple languages at the same time)
+'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+In the admin, you most probably want to include fields for each language (eg. ``name``, ``name_fr``, etc.). In this case you must subclass ``MultilingualModelForm`` and use it as the admin form.
+::
+    # admin.py
+
+    TODO
+
+
+``MultilingualModelForm`` can be used anytime you want to allow editing multiple language simultaneously (not just in the admin). Basically, it just **disables the automatic routing** to the current active language.
+
 
 
 Installation
@@ -272,4 +266,4 @@ License
 -------
 
 This app is licensed under the BSD license. See the LICENSE file for details.
-
+Basically, feel free to do what you want with this code, but I'm not liable if your computer blows up.

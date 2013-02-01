@@ -8,7 +8,7 @@ from django.test import TestCase
 from django.utils import translation
 
 from linguo.tests.forms import BarForm, BarFormWithFieldsSpecified, \
-    BarFormWithFieldsExcluded
+    BarFormWithFieldsExcluded, MultilingualBarFormAllFields
 from linguo.tests.models import Foo, FooRel, Moo, Bar, BarRel, Moe, Gem, \
     FooCategory, Hop, Ord, Doc, Lan
 
@@ -1318,6 +1318,80 @@ if django.VERSION[:3] >= (1, 1, 2):  # The AdminTests only pass with django >= 1
             response = self.client.get(url, {'q': 'world'})
             self.assertContains(response, 'hello world')
             self.assertNotContains(response, 'oh my god')
+
+
+class TestMultilingualForm(LinguoTests):
+    def testCreatesModelInstanceWithAllFieldValues(self):
+        translation.activate('fr')
+        form = MultilingualBarFormAllFields(data={
+            'name': 'Bar',
+            'name_fr': 'French Bar',
+            'price': 12,
+            'quantity': 5,
+            'description': 'English description.',
+            'description_fr': 'French description.'
+        })
+
+        instance = form.save()
+
+        translation.activate('en')
+        instance = Bar.objects.get(id=instance.id)  # Refresh from db
+
+        self.assertEqual(instance.name, 'Bar')
+        self.assertEqual(instance.price, 12)
+        self.assertEqual(instance.quantity, 5)
+        self.assertEqual(instance.description, 'English description.')
+
+        translation.activate('fr')
+        self.assertEqual(instance.name, 'French Bar')
+        self.assertEqual(instance.price, 12)
+        self.assertEqual(instance.quantity, 5)
+        self.assertEqual(instance.description, 'French description.')
+
+    def testUpdatesModelInstanceWithAllFieldValues(self):
+        instance = Bar(name='Bar', price=12, quantity=5, description='Hello')
+        instance.translate(language='fr', name='French Bar', description='French Hello')
+        instance.save()
+
+        translation.activate('fr')
+        form = MultilingualBarFormAllFields(instance=instance, data={
+            'name': 'Bar2',
+            'name_fr': 'French Bar2',
+            'price': 222,
+            'quantity': 55,
+            'description': 'Hello2',
+            'description_fr': 'French Hello2'
+        })
+
+        instance = form.save()
+
+        translation.activate('en')
+        instance = Bar.objects.get(id=instance.id)  # Refresh from db
+
+        self.assertEqual(instance.name, 'Bar2')
+        self.assertEqual(instance.price, 222)
+        self.assertEqual(instance.quantity, 55)
+        self.assertEqual(instance.description, 'Hello2')
+
+        translation.activate('fr')
+        self.assertEqual(instance.name, 'French Bar2')
+        self.assertEqual(instance.price, 222)
+        self.assertEqual(instance.quantity, 55)
+        self.assertEqual(instance.description, 'French Hello2')
+
+    def testInitialDataContainsAllFieldValues(self):
+        instance = Bar(name='Bar', price=12, quantity=5, description='Hello')
+        instance.translate(language='fr', name='French Bar', description='French Hello')
+        instance.save()
+
+        translation.activate('fr')
+        form = MultilingualBarFormAllFields(instance=instance)
+        self.assertEqual(form.initial['name'], 'Bar')
+        self.assertEqual(form.initial['name_fr'], 'French Bar')
+        self.assertEqual(form.initial['price'], 12)
+        self.assertEqual(form.initial['quantity'], 5)
+        self.assertEqual(form.initial['description'], 'Hello')
+        self.assertEqual(form.initial['description_fr'], 'French Hello')
 
 
 class TestsForUnupportedFeatures(object):  # LinguoTests):

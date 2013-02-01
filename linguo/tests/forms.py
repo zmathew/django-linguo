@@ -1,6 +1,7 @@
 from django import forms
 from django.utils.translation import ugettext_lazy as _
 
+from linguo.forms import MultilingualModeForm
 from linguo.tests.models import Bar
 
 
@@ -23,3 +24,8 @@ class BarFormWithFieldsExcluded(forms.ModelForm):
 
 class BarFormWithCustomField(BarFormWithFieldsSpecified):
     custom_field = forms.CharField(_('custom'))
+
+
+class MultilingualBarFormAllFields(MultilingualModeForm):
+    class Meta:
+        model = Bar
