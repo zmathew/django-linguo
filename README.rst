@@ -20,7 +20,7 @@ Features
   and ordering on translatable fields).
 * Support ModelForms by automatically retrieving/saving values based on the
   active language.
-* Supports Django versions 1.2 to 1.4 (1.5 seems to work, but not officially tested)
+* Supports Django versions 1.2 to 1.5 (tested against most recent point release for each version)
 * Comprehensive test coverage
 
 
