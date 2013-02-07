@@ -1,13 +1,12 @@
 Linguo
 ======
 
-Linguo aims to make model translation easy and is designed to let you use the
-built-in Django features (Query API, Model Forms, Admin, etc) as intended. It
-integrates relatively easily with your existing code and performs the
-translation retrieval logic transparently (similar to ugettext).
-
-It does this by creating additional columns for each language and using
-accessors to make it transparent to you.
+Linguo aims to make model translation easy. It is designed to let you use the
+built-in Django features (Query API, Model Forms, Admin, etc) as intended.
+Linguo integrates relatively easily with your existing code and performs the
+translation retrieval logic transparently (similar to ugettext). It does this
+by creating additional columns for each language and using proxy properties to
+make it transparent to you.
 
 
 
@@ -16,8 +15,8 @@ Features
 
 * Automatically references the correct translation based on the current active
   language.
-* Lets you use the Django ORM just as before (including support for filtering
-  and ordering on translatable fields).
+* Lets you use the Django ORM normally (no need to worry about which fields are
+  translatable, linguo figures it out for you).
 * Support ModelForms by automatically retrieving/saving values based on the
   active language.
 * Supports Django versions 1.2 to 1.5 (tested against most recent point release for each version)
