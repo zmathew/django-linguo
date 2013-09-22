@@ -63,8 +63,11 @@ Assuming your ``LANGUAGES`` settings looks like this ...
 Then, you can do this:
 ''''''''''''''''''''''
 
-**Create a product:** It automatically sets the values for the current active language.
+**Create a product:** It automatically sets the values for the current active 
+language.
 ::
+
+    from django.utils import translation  # import the translation package
 
     translation.activate('en')
     product = Product.objects.create(
@@ -187,7 +190,6 @@ the **current active language**.
     # Of course, non-translatable fields will have a consistent value
 
 
-
 Admin Model Forms (editing multiple languages at the same time)
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 In the admin, you most probably want to include fields for each language (eg.
@@ -210,7 +212,6 @@ In the admin, you most probably want to include fields for each language (eg.
 ``MultilingualModelForm`` can be used anytime you want to allow editing multiple
 language simultaneously (not just in the admin). Basically, it just **disables
 the automatic routing** to the current active language.
-
 
 
 Installation
@@ -239,7 +240,7 @@ Adding new languages
 
         ./manage.py sql <app-name>
 
-You'll have to manually write the SQL statement to alter the table .
+You'll have to manually write the SQL statement to alter the table.
 
 
 Running the tests
@@ -247,6 +248,23 @@ Running the tests
 ::
 
     ./manage.py test tests --settings=linguo.tests.settings
+
+
+Troubleshooting
+---------------
+
+If you run into this message when generating migrations:
+::
+
+    $ ./manage.py schemamigration yourapp --auto
+    ? The field 'YourModel.field_text_de' does not have a default specified, yet is NOT NULL.
+    ? Since you are adding this field, you MUST specify a default
+    ? value to use for existing rows. Would you like to:
+    ?  1. Quit now, and add a default to the field in models.py
+    ?  2. Specify a one-off value to use for existing columns now
+    ? Please select a choice:
+
+It means you have ``blank=False, default=None`` on one or more of your models. 
 
 
 Behind The Scenes (How It Works)
