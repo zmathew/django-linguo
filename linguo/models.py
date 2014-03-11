@@ -107,7 +107,7 @@ class MultilingualModelBase(ModelBase):
             translated_attr = getattr(self_reference, attrname)
             
             # If empty, fall back to default language
-            if (translated_attr is u'' and
+            if (not translated_attr and
                     self_reference._language != settings.LANGUAGE_CODE):
                 current_language = self_reference._language
                 self_reference.translate(settings.LANGUAGE_CODE)
