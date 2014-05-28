@@ -19,7 +19,7 @@ def get_normalized_language(language_code):
     Return normalized language (ie. just like locale). For example, 'en-us'
     becomes 'en_us'.
     """
-    return language_code.replace('-', '_')
+    return translation.to_locale(language_code)
 
 
 def get_current_language():
