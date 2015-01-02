@@ -1,3 +1,6 @@
+**Update: Version 1.4.0 adds support for Django 1.6 and 1.7
+and drops support for Django < 1.4**
+
 Linguo
 ======
 
@@ -19,7 +22,7 @@ Features
   translatable, linguo figures it out for you).
 * Support ModelForms by automatically retrieving/saving values based on the
   active language.
-* Supports Django versions 1.2 to 1.5 (tested against most recent point release for each version)
+* Supports Django versions 1.4.9 to 1.7.1
 * Comprehensive test coverage
 
 
@@ -63,7 +66,7 @@ Assuming your ``LANGUAGES`` settings looks like this ...
 Then, you can do this:
 ''''''''''''''''''''''
 
-**Create a product:** It automatically sets the values for the current active 
+**Create a product:** It automatically sets the values for the current active
 language.
 ::
 
@@ -264,7 +267,7 @@ If you run into this message when generating migrations:
     ?  2. Specify a one-off value to use for existing columns now
     ? Please select a choice:
 
-It means you have ``blank=False, default=None`` on one or more of your models. 
+It means you have ``blank=False, default=None`` on one or more of your models.
 
 
 Behind The Scenes (How It Works)

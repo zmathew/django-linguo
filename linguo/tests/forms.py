@@ -1,5 +1,4 @@
 from django import forms
-from django.utils.translation import ugettext_lazy as _
 
 from linguo.forms import MultilingualModelForm
 from linguo.tests.models import Bar
@@ -8,6 +7,8 @@ from linguo.tests.models import Bar
 class BarForm(forms.ModelForm):
     class Meta:
         model = Bar
+        if hasattr(forms, 'ALL_FIELDS'):  # For Django < 1.6 compatibility
+            fields = forms.ALL_FIELDS
 
 
 class BarFormWithFieldsSpecified(forms.ModelForm):
@@ -23,9 +24,11 @@ class BarFormWithFieldsExcluded(forms.ModelForm):
 
 
 class BarFormWithCustomField(BarFormWithFieldsSpecified):
-    custom_field = forms.CharField(_('custom'))
+    custom_field = forms.CharField()
 
 
 class MultilingualBarFormAllFields(MultilingualModelForm):
     class Meta:
         model = Bar
+        if hasattr(forms, 'ALL_FIELDS'):  # For Django < 1.6 compatibility
+            fields = forms.ALL_FIELDS
