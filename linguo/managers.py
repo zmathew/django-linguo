@@ -94,3 +94,6 @@ class MultilingualManager(models.Manager):
 
     def get_queryset(self):
         return MultilingualQuerySet(self.model)
+
+    def get_query_set(self):  # For Django < 1.6 compatibility
+        return self.get_queryset()
