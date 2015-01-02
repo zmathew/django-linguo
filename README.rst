@@ -1,5 +1,5 @@
-**Update: Version 1.4.0 adds support for Django 1.6 and 1.7
-and drops support for Django < 1.4**
+**Update:** Version 1.4.0 adds support for Django 1.6 and 1.7
+and drops support for Django < 1.4
 
 Linguo
 ======
@@ -147,10 +147,9 @@ Model Forms for Multilingual models
 '''''''''''''''''''''''''''''''''''
 
 Model Forms work transparently in the sense that it automatically saves the form
-data to the current active language. However, you **must specify the
-``fields``** attribute on the form. Otherwise you will end up with fields for
-every language (eg. ``name``, ``name_fr``, etc.) which is probably not what you
-want (if you do want this, see section below on 'Admin Model Forms'). ::
+data to the current active language. However, if you want to edit multiple
+languages at the same time (eg. ``name``, ``name_fr``, etc.) see section below
+on 'Admin Model Forms'. ::
 
     class ProductForm(forms.ModelForm):
         class Meta:
@@ -206,6 +205,7 @@ In the admin, you most probably want to include fields for each language (eg.
     class ProductAdminForm(MultilingualModelForm):
         class Meta:
             model = Product
+            fields = forms.ALL_FIELDS
 
     # Admin definition
     class ProductAdmin(admin.ModelAdmin):
@@ -223,34 +223,23 @@ Installation
 #. Add ``linguo`` to your ``INSTALLED_APPS`` setting.
 #. Ensure the ``LANGUAGES`` setting contains all the languages for your site.
 
-It is highly recommended that you use `south <http://south.aeracode.org/>`_ so
-that changes to your model can be migrated using automatic schema migrations.
-This is because linguo creates new fields on your model that are transparent to
-you. See the section below on "Behind The Scenes" for more details.
-
 
 Adding new languages
 ''''''''''''''''''''
 
-* Append the new language to the ``LANGUAGES`` setting.
+1. Append the new language to the ``LANGUAGES`` setting.
     - You should avoid changing the primary language (ie. the first language in the list). If you do that, you will have to migrate the data in that column.
-* If using ``south``, perform an automatic schemamigration:
+2. Generate migrations (since new fields will be added to your models):
     ::
 
-        ./manage.py schemamigration <app-name> --auto
-* If NOT using ``south``, examine the schema change by running:
-    ::
-
-        ./manage.py sql <app-name>
-
-You'll have to manually write the SQL statement to alter the table.
+        ./manage.py makemigrations <app-name>
 
 
 Running the tests
 -----------------
 ::
 
-    ./manage.py test tests --settings=linguo.tests.settings
+    ./manage.py test linguo.tests --settings=linguo.tests.settings
 
 
 Troubleshooting
