@@ -1421,6 +1421,26 @@ class TestMultilingualForm(LinguoTests):
         self.assertEqual(form.initial['description'], 'Hello')
         self.assertEqual(form.initial['description_fr'], 'French Hello')
 
+class TestFeaturesThatShouldveBeenPresent(LinguoTests):
+
+    def testDbColumnNameHandling(self):
+        """
+        Test that a modle with db_column set on a translatable field
+        properly works.
+        """
+        instance = DbColumnNameModel(name="english name")
+        instance.translate(language='fr', name="french name")
+        instance.save()
+
+        translation.activate('fr')
+        m = DbColumnNameModel.objects.get(id=instance.id)
+        self.assertEqual(m.name, 'french name')
+
+        translation.activate('en')
+        m = DbColumnNameModel.objects.get(id=instance.id)
+        self.assertEqual(m.name, 'english name')
+
+
 
 class TestsForUnupportedFeatures(object):  # LinguoTests):
 

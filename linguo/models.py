@@ -85,6 +85,10 @@ class MultilingualModelBase(ModelBase):
                 lang_fieldname = get_real_field_name(field, lang_code)
                 lang_field.name = lang_fieldname
 
+                if attrs[field].db_column:
+                    lang_field.db_column = get_real_field_name(attrs[field].db_column, lang_code)
+                    print lang_field.db_column
+
                 if lang_field.verbose_name is not None:
                     # This is to extract the original value that was passed into ugettext_lazy
                     # We do this so that we avoid evaluating the lazy object.

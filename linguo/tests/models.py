@@ -130,6 +130,12 @@ class Lan(MultilingualModel):
         translate = ('name',)
 
 
+class DbColumnNameModel(MultilingualModel):
+    name = models.CharField(max_length=50, db_column="prefixed_name")
+
+    class Meta:
+        translate = ('name',)
+
 """
 class AbstractCar(models.Model):
     name = models.CharField(max_length=255, verbose_name=_('name'), default=None)
