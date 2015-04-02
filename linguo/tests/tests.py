@@ -1421,7 +1421,7 @@ class TestMultilingualForm(LinguoTests):
         self.assertEqual(form.initial['description'], 'Hello')
         self.assertEqual(form.initial['description_fr'], 'French Hello')
 
-class TestFeaturesThatShouldveBeenPresent(LinguoTests):
+class TestDjangoORMFieldSettings(LinguoTests):
 
     def testDbColumnNameHandling(self):
         """
