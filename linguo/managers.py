@@ -48,8 +48,12 @@ def get_fields_to_translatable_models(model):
     for field_name in model._meta.get_all_field_names():
         field_object, modelclass, direct, m2m = model._meta.get_field_by_name(field_name)
         if direct and isinstance(field_object, RelatedField):
-            if issubclass(field_object.related.parent_model, MultilingualModel):
-                results.append((field_name, field_object.related.parent_model))
+            try:
+                parent_model = field_object.related.parent_model
+            except AttributeError:
+                parent_model = field_object.related.model
+            if issubclass(parent_model, MultilingualModel):
+                results.append((field_name, parent_model))
     return results
 
 
