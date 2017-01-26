@@ -1,3 +1,6 @@
+**This project is no longer maintained.**
+
+
 **Update:** Version 1.4.0 adds support for Django 1.6 and 1.7
 and drops support for Django < 1.4
 
