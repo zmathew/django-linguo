@@ -47,10 +47,10 @@ def get_fields_to_translatable_models(model):
 
     for field in model._meta.get_fields():
         field_object = model._meta.get_field(field.name)
-        direct = hasattr(field_object, 'related')
+        direct = hasattr(field_object, 'related_model')
         if direct and isinstance(field_object, RelatedField):
-            if issubclass(field_object.related.parent_model, MultilingualModel):
-                results.append((field_name, field_object.related.parent_model))
+            if issubclass(field_object.related_model, MultilingualModel):
+                results.append((field.name, field_object.related_model))
     return results
 
 
