@@ -200,3 +200,13 @@ class MultilingualModel(models.Model, metaclass=MultilingualModelBase):
             setattr(self, key, val)  # Set values on the object
         # Now switch back
         self._force_language = old_forced_language
+
+    def get_deferred_fields(self):
+        """
+        Return a set containing names of deferred fields for this instance.
+        """
+        return {
+            f.attname for f in self._meta.concrete_fields
+            if f.attname not in self.__dict__ and \
+               f.attname not in self._meta.translatable_fields
+        }
