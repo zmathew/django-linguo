@@ -158,7 +158,7 @@ class MultilingualModelBase(ModelBase):
         return attrs
 
 
-class MultilingualModel(models.Model):
+class MultilingualModel(models.Model, metaclass=MultilingualModelBase):
     __metaclass__ = MultilingualModelBase
 
     objects = MultilingualManager()
