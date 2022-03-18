@@ -68,10 +68,11 @@ class MultilingualQuerySet(models.query.QuerySet):
                 self.query.add_ordering(*ordering)
 
     def _filter_or_exclude(self, negate, args, kwargs):
+        kwargs_new = {}
         for key, val in kwargs.items():
             new_key = rewrite_lookup_key(self.model, key)
-            del kwargs[key]
-            kwargs[new_key] = val
+            kwargs_new[new_key] = val
+        kwargs = kwargs_new
 
         return super(MultilingualQuerySet, self)._filter_or_exclude(negate, args, kwargs)
 
