@@ -45,11 +45,12 @@ def get_fields_to_translatable_models(model):
     results = []
     from linguo.models import MultilingualModel  # to avoid circular import
 
-    for field_name in model._meta.get_all_field_names():
-        field_object, modelclass, direct, m2m = model._meta.get_field_by_name(field_name)
+    for field in model._meta.get_fields():
+        field_object = model._meta.get_field(field.name)
+        direct = hasattr(field_object, 'related_model')
         if direct and isinstance(field_object, RelatedField):
-            if issubclass(field_object.related.parent_model, MultilingualModel):
-                results.append((field_name, field_object.related.parent_model))
+            if issubclass(field_object.related_model, MultilingualModel):
+                results.append((field.name, field_object.related_model))
     return results
 
 
@@ -66,13 +67,14 @@ class MultilingualQuerySet(models.query.QuerySet):
                     ordering.append(rewrite_lookup_key(self.model, key))
                 self.query.add_ordering(*ordering)
 
-    def _filter_or_exclude(self, negate, *args, **kwargs):
+    def _filter_or_exclude(self, negate, args, kwargs):
+        kwargs_new = {}
         for key, val in kwargs.items():
             new_key = rewrite_lookup_key(self.model, key)
-            del kwargs[key]
-            kwargs[new_key] = val
+            kwargs_new[new_key] = val
+        kwargs = kwargs_new
 
-        return super(MultilingualQuerySet, self)._filter_or_exclude(negate, *args, **kwargs)
+        return super(MultilingualQuerySet, self)._filter_or_exclude(negate, args, kwargs)
 
     def order_by(self, *field_names):
         new_args = []
